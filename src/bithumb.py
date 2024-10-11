@@ -7,19 +7,17 @@ import hashlib
 import time
 import requests
 import json
-from tqdm import tqdm
-from datetime import date, timedelta
+from datetime import date
 from dotenv import load_dotenv
 from urllib.parse import urlencode, urljoin
-
-load_dotenv()
+from src.config.env import BITHUMB_KEY, BITHUMB_SECRET
 headers = {"accept": "application/json"}
 
 class BithumbClient():
     def __init__(self) -> None:
         self.base_url = "https://api.bithumb.com"
-        self.bithumb_key = os.getenv('BITHUMB_KEY')
-        self.bithumb_secret = os.getenv('BITHUMB_SECRET')
+        self.bithumb_key = BITHUMB_KEY
+        self.bithumb_secret = BITHUMB_SECRET
         self.crypto_markets = self.get_crypto_markets()
 
     def get_crypto_markets(self) -> pd.DataFrame:
