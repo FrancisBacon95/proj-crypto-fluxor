@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "proj-crypto-pulse-tracker"
+version = "0.1.0"
+description = ""
+authors = ["FrancisBacon95 <francis_bacon@naver.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+requests = "*"
+pandas = "*"
+pyjwt = "*"
+python-dotenv = "*"
+pybithumb = "*"
+ccxt = "*"
+matplotlib = "*"
+tqdm = "*"
+scikit-learn = "*"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
