@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "proj-crypto-pulse-tracker"
+name = "proj-crypto-fluxor"
 version = "0.1.0"
 description = ""
 authors = ["FrancisBacon95 <francis_bacon@naver.com>"]
@@ -16,6 +16,7 @@ ccxt = "*"
 matplotlib = "*"
 tqdm = "*"
 scikit-learn = "*"
+python-binance = "*"
 
 
 [build-system]
