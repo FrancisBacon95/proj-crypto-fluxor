@@ -33,5 +33,5 @@ class CoinMarketCapClient():
         response = requests.get(url, headers=self.headers, params=params)
         response.raise_for_status()
         result = pd.DataFrame(response.json()['data'])
-        quote = pd.DataFrame(map(lambda x: x['USD'], result['quote'].values))
+        quote = pd.DataFrame(map(lambda x: x['USD'], result['quote'].values)).drop(columns='last_updated')
         return pd.concat([result, quote], axis=1)

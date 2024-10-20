@@ -21,6 +21,7 @@ gspread = "*"
 slack-sdk = "*"
 pandas-gbq = "*"
 google-cloud-bigquery = "*"
+ipykernel = "*"
 
 [build-system]
 requires = ["poetry-core"]
