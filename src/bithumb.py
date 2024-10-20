@@ -11,6 +11,7 @@ from datetime import date
 from dotenv import load_dotenv
 from urllib.parse import urlencode, urljoin
 from src.config.env import BITHUMB_KEY, BITHUMB_SECRET
+from src.config.helper import log_method_call
 headers = {"accept": "application/json"}
 
 class BithumbClient():
@@ -20,12 +21,14 @@ class BithumbClient():
         self.bithumb_secret = BITHUMB_SECRET
         self.crypto_markets = self.get_crypto_markets()
 
+    @log_method_call
     def get_crypto_markets(self) -> pd.DataFrame:
         end_point = "v1/market/all?isDetails=false"
         url = urljoin(self.base_url, end_point)
         response = requests.get(url, headers=headers).json()
         return pd.DataFrame(response)
 
+    @log_method_call
     def get_candle_data(self, market: list,  count: int, end_date: date):
         '''
         일봉 데이터 정보(end_date 미만으로 count 만큼 출력)
@@ -36,7 +39,7 @@ class BithumbClient():
         response = requests.get(url, headers=headers, params=params).json()
         return pd.DataFrame(response)
     
-    # crpytos = crypto_markets['market'].to_list()[:3]
+    @log_method_call
     def get_current_price(self, market_list: list) -> pd.DataFrame:
         """현재가 정보
         Args:
@@ -48,6 +51,7 @@ class BithumbClient():
         response = requests.get(url, headers=headers, params={'markets': markets})
         return pd.DataFrame(response.json())
     
+    @log_method_call
     def get_orderable_info(self, market) -> dict:
         """가상화폐 주문 가능 정보
         Args:
@@ -80,6 +84,7 @@ class BithumbClient():
             # handle exception
             print(err)
 
+    @log_method_call
     def exceute_order(self, type: str, market: str, volume: float, price: int, ord_type: str):
         """가상화폐 거래 실행
         Args:
@@ -124,3 +129,5 @@ class BithumbClient():
         except Exception as err:
             # handle exception
             print(err)
+
+    
