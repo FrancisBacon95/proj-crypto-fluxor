@@ -1,6 +1,9 @@
 from datetime import datetime
 import inspect
 from functools import wraps
+from src.logger import get_logger
+
+logger = get_logger(__name__)
 
 def log_method_call(func):
     @wraps(func)
