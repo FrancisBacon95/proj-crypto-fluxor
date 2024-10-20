@@ -3,8 +3,8 @@ import pandas as pd
 import numpy as np
 
 class CTREND():
-    def __init__(self, data: pd.DataFrame) -> None:
-        self.data = data
+    def __init__(self, data: pd.DataFrame, date_col: str) -> None:
+        self.data = data.set_index(keys=[date_col]).sort_index()
 
     def set_features(self):
         self.set_RSI()
@@ -23,7 +23,6 @@ class CTREND():
         
         # Chaikin (volume indicator)
         self.set_Chaikin()
-
         self.set_bollinger_based()
 
     def set_RSI(self, window:int=14):
