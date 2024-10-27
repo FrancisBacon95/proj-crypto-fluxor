@@ -7,10 +7,12 @@ import hashlib
 import time
 import requests
 import json
-from datetime import date
+from datetime import datetime, date, timedelta
 from dotenv import load_dotenv
 from urllib.parse import urlencode, urljoin
 from src.config.env import BITHUMB_KEY, BITHUMB_SECRET
+from src.config.helper import log_method_call
+from src.connection.bigquery import BigQueryConn
 headers = {"accept": "application/json"}
 
 class BithumbClient():
@@ -19,9 +21,11 @@ class BithumbClient():
         self.bithumb_key = BITHUMB_KEY
         self.bithumb_secret = BITHUMB_SECRET
         self.crypto_markets = self.get_crypto_markets()
+        self.bq_conn = BigQueryConn()
 
+    @log_method_call
     def get_crypto_markets(self) -> pd.DataFrame:
-        end_point = "v1/market/all?isDetails=false"
+        end_point = "v1/market/all"
         url = urljoin(self.base_url, end_point)
         response = requests.get(url, headers=headers).json()
         return pd.DataFrame(response)
@@ -36,7 +40,7 @@ class BithumbClient():
         response = requests.get(url, headers=headers, params=params).json()
         return pd.DataFrame(response)
     
-    # crpytos = crypto_markets['market'].to_list()[:3]
+    @log_method_call
     def get_current_price(self, market_list: list) -> pd.DataFrame:
         """현재가 정보
         Args:
@@ -48,6 +52,7 @@ class BithumbClient():
         response = requests.get(url, headers=headers, params={'markets': markets})
         return pd.DataFrame(response.json())
     
+    @log_method_call
     def get_orderable_info(self, market) -> dict:
         """가상화폐 주문 가능 정보
         Args:
@@ -80,6 +85,7 @@ class BithumbClient():
             # handle exception
             print(err)
 
+    @log_method_call
     def exceute_order(self, type: str, market: str, volume: float, price: int, ord_type: str):
         """가상화폐 거래 실행
         Args:
@@ -124,3 +130,43 @@ class BithumbClient():
         except Exception as err:
             # handle exception
             print(err)
+
+    @log_method_call
+    def enable_cryptos_by_date(self, target_date: date, threshold: int):
+        start_date = target_date - timedelta(days=threshold)
+
+        # start_date 시점에 있는 ticker 확인
+        result = []
+        raw_market_list = self.get_crypto_markets()['market']
+        for _ticker in raw_market_list:
+            try:
+                tmp = self.get_candle_data(_ticker, 1, start_date)
+                result += [tmp]
+            except:
+                continue
+        result = pd.concat(result)
+        return result
+
+    @log_method_call
+    def get_raw_data_1d(self, target_cryptos: list, target_date) -> pd.DataFrame:
+        raw = []
+        for _ticker in target_cryptos:
+            tmp = self.get_candle_data(_ticker, 1, target_date)
+            raw += [tmp]
+        raw = pd.concat(raw)
+        raw['candle_date_time_kst'] = pd.to_datetime(raw['candle_date_time_kst'])
+        raw['reg_date'] = raw['candle_date_time_kst']
+        raw = raw.drop(columns=['candle_date_time_kst', 'candle_date_time_utc', 'timestamp', 'prev_closing_price'])
+        raw = raw.rename(columns={
+            'opening_price': 'open',
+            'trade_price': 'close',
+            'high_price': 'high',
+            'low_price': 'low',
+            'candle_acc_trade_volume': 'volume',
+        'candle_acc_trade_price':  'acc_trade_sum'
+        })
+        raw = raw.sort_values(by=['reg_date', 'market']).reset_index(drop=True)
+        return raw
+
+
+    
