@@ -1,22 +1,17 @@
-
 import pandas as pd
 import numpy as np
 from datetime import date, timedelta, datetime
-from src.bithumb import BithumbClient
-from src.coinmarketcap import CoinMarketCapClient
 
-class CTREND():
+class CTRENDFeatureMaker():
     def __init__(self, data: pd.DataFrame, date_col: str) -> None:
         self.data = data.set_index(keys=[date_col]).sort_index()
 
-        self.bithumb_client = BithumbClient()
-        self.coinmarketcap_client = CoinMarketCapClient()
         # 학습을 위해 필요한 최초 시점
         self.pred_date = date.today()
         self.train_start_date = self.pred_date - timedelta(days=570)
         self.train_end_date = self.pred_date - timedelta(days=1)
 
-        self.enable_train_tickers = self.get_enable_train_tickers_by_date()
+        # self.enable_train_tickers = self.get_enable_train_tickers_by_date()
 
     def set_features(self):
         self.set_RSI()
@@ -118,81 +113,3 @@ class CTREND():
 
         self.data = self.data.rename(columns={'SMA': 'Boll_mid'})
         self.data = self.data.drop(columns=['std'])
-
-    def get_enable_train_tickers_by_date(self) -> list:
-        # start_date 시점에 있는 ticker 확인
-        enable_train_tickers = []
-        for _ticker in self.bithumb_client.crypto_markets['market'].to_list():
-            try:
-                tmp = self.bithumb_client.get_candle_data(_ticker, 1, self.train_start_date)
-                enable_train_tickers += [tmp]
-            except:
-                continue
-        result = pd.concat(enable_train_tickers)
-        return list(result['market'].unique())
-
-    def get_raw_data(self, pred_date: date) -> pd.DataFrame:
-        raw = []
-        for _ticker in self.enable_train_tickers:
-            tmp_1 = self.bithumb_client.get_candle_data(_ticker, 200, pred_date)
-            tmp_2 = self.bithumb_client.get_candle_data(_ticker, 200, pred_date - timedelta(days=200))
-            tmp_3 = self.bithumb_client.get_candle_data(_ticker, 170, pred_date - timedelta(days=200*2))
-            raw += [tmp_1, tmp_2, tmp_3]
-        raw = pd.concat(raw)
-
-        raw['candle_date_time_kst'] = pd.to_datetime(raw['candle_date_time_kst'])
-        raw['candle_date_time_utc'] = pd.to_datetime(raw['candle_date_time_utc'])
-        return raw
-    
-    def get_enable_train_tickers_by_marketcap(self) -> pd.DataFrame:
-        coinmarketcap_client = self.coinmarketcap_client
-        latest_raw = coinmarketcap_client.listing_latest()
-        latest_raw['is_stablecoin'] = latest_raw['tags'].apply(lambda x: True if 'stablecoin' in x else False)
-
-        # exception conditions
-        cand_by_marketcap = latest_raw.loc[~latest_raw['is_stablecoin']].copy()
-
-        value_lower_bound = 1000000
-        cand_by_marketcap = cand_by_marketcap.loc[cand_by_marketcap['market_cap'] > value_lower_bound]
-
-        # 상위 0.5%, 하위 0.5%의 경계 값 계산
-        except_quantile = 0.005
-        quantile_lower_bound = cand_by_marketcap['market_cap'].quantile(    except_quantile)
-        quantile_upper_bound = cand_by_marketcap['market_cap'].quantile(1 - except_quantile)
-
-        cand_by_marketcap = cand_by_marketcap[
-            cand_by_marketcap['market_cap'].between(quantile_lower_bound, quantile_upper_bound, inclusive="neither")
-        ]
-
-        return cand_by_marketcap
-
-    def preprocess(self, df: pd.DataFrame) -> pd.DataFrame:
-        raw = df.rename(columns={
-            'opening_price': 'open',
-            'trade_price': 'close',
-            'high_price': 'high',
-            'low_price': 'low',
-            'candle_acc_trade_volume': 'volume',
-            'candle_date_time_kst': 'kst_date'
-        })[
-            ['kst_date', 'market', 'open', 'close', 'high', 'low', 'volume']
-        ].copy()
-        raw['kst_date'] = pd.to_datetime(raw['kst_date']).dt.date
-
-        result = []
-        for _, _df in raw.groupby(by=['market']):
-            ctrend = CTREND(_df, 'kst_date')
-            ctrend.set_features()
-            result+=[ctrend.data]
-        result=pd.concat(result).dropna()
-
-        latest_raw = self.get_enable_train_tickers_by_marketcap()
-        result['symbol'] = result['market'].apply(lambda x: x.split('-')[1])
-        result = result.loc[result['symbol'].isin(latest_raw['symbol'])]
-
-        # 주가 데이터를 ticker별로 그룹화한 후, 7일 뒤 종가를 shift로 구함
-        result['future_close'] = result.groupby('market')['close'].shift(-7)
-        # 7일 뒤 상승률 계산 ((7일 뒤 종가 - 현재 종가) / 현재 종가) * 100
-        result['y'] = (result['future_close'] - result['close']) / result['close'] * 100
-        result = result.drop(columns=['future_close', 'open', 'close', 'high', 'low', 'volume']).dropna()
-        return result

@@ -51,6 +51,36 @@ class BithumbClient():
         markets = ', '.join(market_list)
         response = requests.get(url, headers=headers, params={'markets': markets})
         return pd.DataFrame(response.json())
+
+    @log_method_call
+    def get_account_info(self) -> pd.DataFrame:
+        """전체 계좌 조회
+        """
+        end_point = "v1/accounts"
+        url = urljoin(self.base_url, end_point)
+        # Generate access token
+        payload = {
+            'access_key': self.bithumb_key,
+            'nonce': str(uuid.uuid4()),
+            'timestamp': round(time.time() * 1000)
+        }
+        jwt_token = jwt.encode(payload, self.bithumb_secret)
+        authorization_token = 'Bearer {}'.format(jwt_token)
+        auth_headers = {'Authorization': authorization_token}
+        try:
+            # Call API
+            response = requests.get(url=url, headers=auth_headers)
+            response.raise_for_status()
+            result = pd.DataFrame(response.json())
+            result['balance'] = result['balance'].astype('Float64')
+            result['avg_buy_price'] = result['avg_buy_price'].astype('Float64')
+            result['locked'] = result['locked'].astype('Int64')
+            result['avg_buy_price_modified'] = result['avg_buy_price_modified'].astype(bool)
+            return result
+        except Exception as err:
+            # handle exception
+            print(err)
+        
     
     @log_method_call
     def get_orderable_info(self, market) -> dict:
@@ -73,10 +103,13 @@ class BithumbClient():
             'timestamp': round(time.time() * 1000), 
             'query_hash': query_hash,
             'query_hash_alg': 'SHA512',
-        }   
+        }
         jwt_token = jwt.encode(payload, self.bithumb_secret)
         authorization_token = 'Bearer {}'.format(jwt_token)
-        headers = {'Authorization': authorization_token}
+        headers = {
+            'Authorization': authorization_token, 
+            'Content-Type': 'application/json'
+        }
         url = urljoin(self.base_url, end_point)
         try:
             # Call API
@@ -86,7 +119,7 @@ class BithumbClient():
             print(err)
 
     @log_method_call
-    def exceute_order(self, type: str, market: str, volume: float, price: int, ord_type: str):
+    def exceute_order(self, type: str, market: str, ord_type: str, volume: float=None, price: int=None):
         """가상화폐 거래 실행
         Args:
             type (str): 주문 종류
@@ -101,7 +134,11 @@ class BithumbClient():
         """
         # Set API parameters
         side = 'bid' if type == 'buy' else 'ask' if type == 'sell' else None
-        requestBody = dict( market=market, side=side, volume=volume, price=price, ord_type=ord_type )
+        requestBody = dict(market=market, side=side, ord_type=ord_type)
+        if volume:
+            requestBody['volume'] = volume
+        if price:
+            requestBody['price'] = price
 
         # Generate access token
         query = urlencode(requestBody).encode()
@@ -114,18 +151,21 @@ class BithumbClient():
             'timestamp': round(time.time() * 1000), 
             'query_hash': query_hash,
             'query_hash_alg': 'SHA512',
-        }
+        }   
         jwt_token = jwt.encode(payload, self.bithumb_secret)
         authorization_token = 'Bearer {}'.format(jwt_token)
-        headers = {
-        'Authorization': authorization_token,
-        'Content-Type': 'application/json'
+        print(authorization_token)
+        auth_headers = {
+            'Authorization': authorization_token,
+            'Content-Type': 'application/json'
         }
         end_point = 'v1/orders'
         url = urljoin(self.base_url, end_point)
         try:
             # Call API
-            response = requests.post(url, data=json.dumps(requestBody), headers=headers).json()
+            response = requests.post(url, data=json.dumps(requestBody), headers=auth_headers)
+            response.raise_for_status()
+            return response
             # handle to success or fail
         except Exception as err:
             # handle exception
