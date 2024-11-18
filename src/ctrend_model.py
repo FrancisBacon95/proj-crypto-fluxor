@@ -137,21 +137,22 @@ class CTRENDAllocator():
             if _market in self.except_cryptos:
                 continue
             print('SELL(ask)', 'market(시장가)', _market, _balance)
-            # bithumb.exceute_order(type='sell', market=_market, volume=_balance, ord_type='market')
+            # self.bithumb.exceute_order(type='sell', market=_market, volume=_balance, ord_type='market')
         print('WAIT 10sec. FOR SELLING SETTLEMENT')
         time.sleep(10)
 
         # 2) SHORT TARGETs 매도 후, 정산 결과를 포함하여 예산 측정
         self.account_df = self.bithumb.get_account_info().rename(columns={'currency': 'symbol'})
         self.budget = self.account_df.loc[self.account_df['symbol'] == 'KRW', 'balance'].to_list()[0]
+        
 
         each_budget = self.budget / len(cand_long) 
         each_budget = int(each_budget / 1000) * 1000
-
+        print(f'BUTGET: {each_budget} (total={self.budget})')
         # 3) LONG TARGETs 매수
         for _market in cand_long['market']:
             if _market in self.except_cryptos:
                 continue
             print('BUY(bid)', 'price(시장가)', _market, each_budget)
-            # bithumb.exceute_order(type='buy', market=_market, price=each_budget, ord_type='price')
+            self.bithumb.exceute_order(type='buy', market=_market, price=each_budget, ord_type='price')
                 

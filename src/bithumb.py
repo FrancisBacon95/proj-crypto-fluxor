@@ -154,7 +154,6 @@ class BithumbClient():
         }   
         jwt_token = jwt.encode(payload, self.bithumb_secret)
         authorization_token = 'Bearer {}'.format(jwt_token)
-        print(authorization_token)
         auth_headers = {
             'Authorization': authorization_token,
             'Content-Type': 'application/json'
