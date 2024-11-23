@@ -76,12 +76,12 @@ class BithumbClient():
             result['avg_buy_price'] = result['avg_buy_price'].astype('Float64')
             result['locked'] = result['locked'].astype('Int64')
             result['avg_buy_price_modified'] = result['avg_buy_price_modified'].astype(bool)
-            return result
+            except_elements = ['P', 'LUNA2', 'LUNC']
+            return result.loc[~result['currency'].isin(except_elements)]
         except Exception as err:
             # handle exception
             print(err)
-        
-    
+
     @log_method_call
     def get_orderable_info(self, market) -> dict:
         """가상화폐 주문 가능 정보
@@ -206,6 +206,3 @@ class BithumbClient():
         })
         raw = raw.sort_values(by=['reg_date', 'market']).reset_index(drop=True)
         return raw
-
-
-    
