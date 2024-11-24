@@ -23,6 +23,7 @@ ccxt = "*"
 scikit-learn = "*"
 python-binance = "*"
 lightgbm = "*"
+statsmodels = "*"
 
 [build-system]
 requires = ["poetry-core"]

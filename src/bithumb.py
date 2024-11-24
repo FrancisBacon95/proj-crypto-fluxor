@@ -33,6 +33,7 @@ class BithumbClient():
     def get_candle_data(self, market: list,  count: int, end_date: date):
         '''
         일봉 데이터 정보(end_date 미만으로 count 만큼 출력)
+        캔들 개수(최대 200개까지 요청 가능)
         '''
         end_point = "v1/candles/days"
         url = urljoin(self.base_url, end_point)
@@ -206,3 +207,25 @@ class BithumbClient():
         })
         raw = raw.sort_values(by=['reg_date', 'market']).reset_index(drop=True)
         return raw
+    
+    @log_method_call
+    def backfill_data_1d(self, target_market: str, target_date: date, threshold:int=600):
+        divide = 100
+        result = []
+        for i in range(threshold//divide):
+            tmp = target_date - timedelta(days=i*divide)
+            result += [self.get_candle_data([target_market], count=divide, end_date=tmp)]
+        
+        result = pd.concat(result).reset_index(drop=True)
+        result['candle_date_time_kst'] = pd.to_datetime(result['candle_date_time_kst'])
+        result['reg_date'] = result['candle_date_time_kst']
+        result = result.drop(columns=['candle_date_time_kst', 'candle_date_time_utc', 'timestamp', 'prev_closing_price'])
+        result = result.rename(columns={
+            'opening_price': 'open',
+            'trade_price': 'close',
+            'high_price': 'high',
+            'low_price': 'low',
+            'candle_acc_trade_volume': 'volume',
+        'candle_acc_trade_price':  'acc_trade_sum'
+        })
+        return result.sort_values(by=['reg_date', 'market']).reset_index(drop=True)
