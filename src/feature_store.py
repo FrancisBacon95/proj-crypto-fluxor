@@ -1,8 +1,10 @@
 import pandas as pd
 import numpy as np
 from datetime import date, timedelta, datetime
-
-class CTRENDFeatureMaker():
+from statsmodels.tsa.regime_switching.markov_regression import MarkovRegression
+from src.connection.bigquery import BigQueryConn
+from src.config.helper import log_method_call
+class FeatureStoreByCrypto():
     def __init__(self, data: pd.DataFrame, date_col: str) -> None:
         self.data = data.set_index(keys=[date_col]).sort_index()
 
@@ -14,24 +16,12 @@ class CTRENDFeatureMaker():
         # self.enable_train_tickers = self.get_enable_train_tickers_by_date()
 
     def set_features(self):
-        self.set_RSI()
-        self.set_stochK()
-        self.set_stochD()
-        self.set_stochRSI()
-        self.set_CCI()
-
-        # MA
-        for i in [3, 5, 10, 20, 50, 100, 200]:
-            self.set_SMA_based(SMA_size=i)
-        
-        # MACD based
-        self.set_MACD()
-        self.set_MACD_signal()
-        
-        # Chaikin (volume indicator)
-        self.set_Chaikin()
-        self.set_bollinger_based()
-
+        # CTREND standard features
+        self.set_momentum_oscillators()
+        self.set_SMA_indicators()
+        self.set_volume_indicators()
+        self.set_volatility_based_indicators()
+    
     def set_RSI(self, window:int=14):
         self.data['price_diff'] = self.data['close'].diff(periods=1)
 
@@ -73,18 +63,33 @@ class CTRENDFeatureMaker():
         self.data['CCI'] = (self.data['TP'] - self.data['MA_TP']) / (0.015 * self.data['mean_deviation_TP'])
         self.data = self.data.drop(columns=['MA_TP', 'mean_deviation_TP', 'CCI'])
 
+    def set_SMA_based(self, SMA_size: int, for_volume: bool=False):
+        if for_volume:
+            using_col = 'volume'
+            result_col = f'volSMA_{SMA_size}'
+        else:
+            using_col = 'close'
+            result_col = f'SMA_{SMA_size}'
+        self.data[result_col] = self.data[using_col].rolling(SMA_size).mean()
 
-    def set_SMA_based(self, SMA_size: int):
-        self.data[f'SMA_{SMA_size}'] = self.data['close'].rolling(SMA_size).mean()
-        self.data[f'volSMA_{SMA_size}'] = self.data['volume'].rolling(SMA_size).mean()
+    def set_MACD(self, fast_window: int=12, slow_window: int=26, for_volume: bool=False):
+        if for_volume:
+            using_col = 'volume'
+            result_col = 'volMACD'
+        else:
+            using_col = 'close'
+            result_col = 'MACD'
 
-    def set_MACD(self, fast_window: int=12, slow_window: int=26):
-        self.data[   'MACD'] = self.data['close' ].rolling(fast_window).mean() - self.data['close' ].rolling(slow_window).mean()
-        self.data['volMACD'] = self.data['volume'].rolling(fast_window).mean() - self.data['volume'].rolling(slow_window).mean()
+        self.data[result_col] = self.data[using_col].rolling(fast_window).mean() - self.data['close' ].rolling(slow_window).mean()
 
-    def set_MACD_signal(self, window:int=9):
-        self.data['MACD_diff_signal'] = self.data['MACD'] - self.data['MACD'].rolling(window=window).mean()
-        self.data['volMACD_diff_signal'] = self.data['volMACD'] - self.data['volMACD'].rolling(window=window).mean()
+    def set_MACD_signal(self, window:int=9, for_volume: bool=False):
+        if for_volume:
+            using_col = 'volMACD'
+            result_col = 'volMACD_diff_signal'
+        else:
+            using_col = 'MACD'
+            result_col = 'MACD_diff_signal'
+        self.data[result_col] = self.data[using_col] - self.data[using_col].rolling(window=window).mean()
 
     def set_Chaikin(self, fast_window:int=3, slow_window:int=10):
         self.data['AD'] = ((self.data['close'] - self.data['low']) - (self.data['high'] - self.data['close'])) / (self.data['high'] - self.data['low']) * self.data['volume']
@@ -113,3 +118,75 @@ class CTRENDFeatureMaker():
 
         self.data = self.data.rename(columns={'SMA': 'Boll_mid'})
         self.data = self.data.drop(columns=['std'])
+
+    def set_markov_regime_switching(self):
+        df = self.data.copy()
+        df['returns'] = np.log(df['close'] / df['close'].shift(1))  # Log returns
+        df = df.dropna()
+
+        model = MarkovRegression(df['returns'], k_regimes=2, switching_variance=True).fit()
+        smoothed_marginal_probabilities = model.smoothed_marginal_probabilities
+        result = pd.DataFrame(smoothed_marginal_probabilities[0].rename('regime_prob'))
+
+        cutoff = result['regime_prob'].mean()
+        result['regime'] = np.where(result['regime_prob'] >= cutoff, 0, 1)
+        self.data = self.data.merge(
+            result[['regime']],
+            left_index=True,
+            right_index=True,
+            how='left'
+        )
+
+        max_counted_regime = result['regime'].value_counts().index[0]
+        self.data['regime'].fillna(max_counted_regime)
+
+    def set_momentum_oscillators(self):
+        self.set_RSI()
+        self.set_stochK()
+        self.set_stochD()
+        self.set_stochRSI()
+        self.set_CCI()
+
+    def set_SMA_indicators(self):
+        for i in [3, 5, 10, 20, 50, 100, 200]:
+            self.set_SMA_based(SMA_size=i, for_volume=False)
+        self.set_MACD(fast_window=12, slow_window=26, for_volume=False)
+        self.set_MACD_signal(window=9, for_volume=False)
+
+    def set_volume_indicators(self):
+        for i in [3, 5, 10, 20, 50, 100, 200]:
+            self.set_SMA_based(SMA_size=i, for_volume=True)
+        self.set_MACD(fast_window=12, slow_window=26, for_volume=True)
+        self.set_MACD_signal(window=9, for_volume=True)
+        self.set_Chaikin()
+
+    def set_volatility_based_indicators(self):
+        self.set_bollinger_based()
+        self.set_markov_regime_switching()
+
+
+class FeatureStoreByDate():
+    def __init__(self):
+        self.bq_conn = BigQueryConn()
+
+    def get_fear_and_greed_indicator(self, start_date: date, end_date: date) -> pd.DataFrame:
+        start_date_str = start_date.strftime('%Y-%m-%d')
+        end_date_str = end_date.strftime('%Y-%m-%d')
+        result = self.bq_conn.query(f"""
+        DECLARE start_date DATE DEFAULT '{start_date_str}';
+        DECLARE   end_date DATE DEFAULT '{  end_date_str}';
+        SELECT
+            reg_date,
+            value AS fear_greed_value,
+            CASE
+                WHEN value_classification = 'Extreme fear'  THEN -2
+                WHEN value_classification = 'Fear'          THEN -1
+                WHEN value_classification = 'Neutral'       THEN  0
+                WHEN value_classification = 'Greed'         THEN  1
+                WHEN value_classification = 'Extreme greed' THEN  2
+            END AS fear_greed_level,
+        FROM `proj-asset-allocation.crypto_fluxor.fear_and_greed`
+        WHERE 1=1
+        AND reg_date BETWEEN start_date AND end_date
+        """)
+        return result
