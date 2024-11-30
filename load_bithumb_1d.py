@@ -8,7 +8,7 @@ reg_date = pd.to_datetime(cur.date())
 client = BithumbClient()
 except_markets = ['KRW-NFT']
 enable_cryptos = client.enable_cryptos_by_date(target_date=reg_date, threshold=570)
-enable_cryptos = enable_cryptos.loc[enable_cryptos['market'].isin(except_markets)]
+enable_cryptos = enable_cryptos.loc[~enable_cryptos['market'].isin(except_markets)]
 
 raw = client.get_raw_data_1d(target_cryptos=enable_cryptos['market'], target_date=reg_date)
 client.bq_conn.upsert(
