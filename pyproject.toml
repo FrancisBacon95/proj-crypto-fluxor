@@ -24,6 +24,8 @@ scikit-learn = "*"
 python-binance = "*"
 lightgbm = "*"
 statsmodels = "*"
+pandas-ta = "*"
+numpy = "*"
 
 [build-system]
 requires = ["poetry-core"]
