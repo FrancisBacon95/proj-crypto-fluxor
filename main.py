@@ -28,9 +28,3 @@ def run():
     long, short = obj.run(raw=raw, outliers_for_train=outliers)
     obj.execute_trade_logic(cand_long=long, cand_short=short)
     return {'result': 'test'}
-
-@app.get("/ip")
-def get_ip():
-    import requests
-    response = requests.get("https://ifconfig.me")
-    return {"ip": response.text}

@@ -133,6 +133,7 @@ class BithumbClient():
                 - price : 시장가 주문(매수)
                 - market : 시장가 주문(매도)
         """
+        print('EXECUTE ORDER!!')
         # Set API parameters
         side = 'bid' if type == 'buy' else 'ask' if type == 'sell' else None
         requestBody = dict(market=market, side=side, ord_type=ord_type)
