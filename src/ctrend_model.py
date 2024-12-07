@@ -1,6 +1,7 @@
 
 import pytz
 import time
+import logging
 from datetime import date, datetime, timedelta
 import pandas as pd
 from sklearn.linear_model import ElasticNet
@@ -10,7 +11,7 @@ from src.coinmarketcap import CoinMarketCapClient
 from src.bithumb import BithumbClient
 from src.feature_store import FeatureStoreByCrypto, FeatureStoreByDate
 from src.connection.bigquery import BigQueryConn
-
+logger = logging.getLogger(__name__)
 RANDOM_STATE = 950223
 kst = pytz.timezone('Asia/Seoul')
 
@@ -165,9 +166,9 @@ class CTRENDAllocator():
             _market, _balance =  sell_targets.at[i, 'market'], sell_targets.at[i, 'balance']
             if _market in self.except_cryptos:
                 continue
-            print('SELL(ask)', 'market(시장가)', _market, _balance)
+            logger.info(f'SELL(ask) market(시장가) - {_market}:{ _balance}')
             # self.bithumb.exceute_order(type='sell', market=_market, volume=_balance, ord_type='market')
-        print('WAIT 10sec. FOR SELLING SETTLEMENT')
+        logger.info('WAIT 10sec. FOR SELLING SETTLEMENT')
         time.sleep(10)
 
         # 2) SHORT TARGETs 매도 후, 정산 결과를 포함하여 예산 측정
@@ -177,10 +178,10 @@ class CTRENDAllocator():
 
         each_budget = self.budget / len(cand_long) 
         each_budget = int(each_budget / 1000) * 1000
-        print(f'BUTGET: {each_budget} (total={self.budget})')
+        logger.info(f'BUTGET: {each_budget} (total={self.budget})')
         # 3) LONG TARGETs 매수
         for _market in cand_long['market']:
             if _market in self.except_cryptos:
                 continue
-            print('BUY(bid)', 'price(시장가)', _market, each_budget)
+            logger.info(f'BUY(bid) price(시장가) - {_market}:{each_budget}')
             # self.bithumb.exceute_order(type='buy', market=_market, price=each_budget, ord_type='price')
