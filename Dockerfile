@@ -19,3 +19,6 @@ RUN pip install poetry
 RUN poetry export --without-hashes --format=requirements.txt > requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Cloud Run은 이 포트를 사용합니다.
+EXPOSE 8080  
+
