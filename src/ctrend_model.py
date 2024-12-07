@@ -166,7 +166,7 @@ class CTRENDAllocator():
             if _market in self.except_cryptos:
                 continue
             print('SELL(ask)', 'market(시장가)', _market, _balance)
-            self.bithumb.exceute_order(type='sell', market=_market, volume=_balance, ord_type='market')
+            # self.bithumb.exceute_order(type='sell', market=_market, volume=_balance, ord_type='market')
         print('WAIT 10sec. FOR SELLING SETTLEMENT')
         time.sleep(10)
 
@@ -183,4 +183,4 @@ class CTRENDAllocator():
             if _market in self.except_cryptos:
                 continue
             print('BUY(bid)', 'price(시장가)', _market, each_budget)
-            self.bithumb.exceute_order(type='buy', market=_market, price=each_budget, ord_type='price')
+            # self.bithumb.exceute_order(type='buy', market=_market, price=each_budget, ord_type='price')
