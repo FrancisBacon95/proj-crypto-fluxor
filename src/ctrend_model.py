@@ -114,7 +114,9 @@ class CTRENDAllocator():
 
         raw_bithumb = self.get_bithumb_raw_from_bq(start_date=train_start_date, end_date=self.inference_date)
         raw_marketcap = self.get_marketcaps_from_bq(target_date=self.inference_date, lower_bound=1000000)
+        print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: raw_marketcap")
         filtered_bithumb = raw_bithumb.loc[raw_bithumb['symbol'].isin(raw_marketcap['symbol'])]
+        print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: filtered_bithumb")
         return self.get_features(filtered_bithumb)
     
     def fit_and_predict(self, train_set, inference_set) -> pd.DataFrame:
@@ -134,9 +136,10 @@ class CTRENDAllocator():
     def preprocess(self):
         train_end_date = self.inference_date - timedelta(days=1)
         train_start_date = train_end_date - timedelta(days=self.train_size)
-        logger.info(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: train_start_date")
+        print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: train_start_date")
         raw_bithumb = self.get_bithumb_raw_from_bq(start_date=train_start_date, end_date=self.inference_date)
         raw_marketcap = self.get_marketcaps_from_bq(target_date=self.inference_date, lower_bound=1000000)
+        print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: raw_marketcap")
 
         quantile = 0.005
         quantile_lower_bound = raw_marketcap['market_cap'].quantile(    quantile)
@@ -147,19 +150,19 @@ class CTRENDAllocator():
 
         filtered_bithumb = raw_bithumb.loc[raw_bithumb['symbol'].isin(raw_marketcap['symbol'])]
         raw_features = self.get_features(filtered_bithumb)
-        logger.info(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: raw_features")
+        print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: raw_features")
         return raw_features, outliers_for_train
     
     def run(self, raw:pd.DataFrame, outliers_for_train:list):
         train_set     = raw.loc[(raw['reg_date'] <  self.inference_date) & ~(raw['symbol'].isin(outliers_for_train))].dropna().reset_index(drop=True)
         inference_set = raw.loc[(raw['reg_date'] == self.inference_date)].reset_index(drop=True)
-        logger.info(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: inference_set")
+        print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: inference_set")
 
         pred_result = self.fit_and_predict(train_set=train_set, inference_set=inference_set)
-        logger.info(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: pred_result")
+        print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: pred_result")
         cand_long  = pred_result.loc[pred_result['pred'] >= pred_result['pred'].quantile(1-0.2)]
         cand_short = pred_result.loc[pred_result['pred'] <= pred_result['pred'].quantile(0.2)]
-        logger.info(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: cand_short")
+        print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: cand_short")
         return cand_long, cand_short
     
     def execute_trade_logic(self, cand_long, cand_short):
@@ -169,9 +172,9 @@ class CTRENDAllocator():
             _market, _balance =  sell_targets.at[i, 'market'], sell_targets.at[i, 'balance']
             if _market in self.except_cryptos:
                 continue
-            logger.info(f'SELL(ask) market(시장가) - {_market}:{ _balance}')
+            print(f'SELL(ask) market(시장가) - {_market}:{ _balance}')
             # self.bithumb.exceute_order(type='sell', market=_market, volume=_balance, ord_type='market')
-        logger.info('WAIT 10sec. FOR SELLING SETTLEMENT')
+        print('WAIT 10sec. FOR SELLING SETTLEMENT')
         time.sleep(10)
 
         # 2) SHORT TARGETs 매도 후, 정산 결과를 포함하여 예산 측정
@@ -181,12 +184,12 @@ class CTRENDAllocator():
 
         each_budget = self.budget / len(cand_long) 
         each_budget = int(each_budget / 1000) * 1000
-        logger.info(f'BUTGET: {each_budget} (total={self.budget})')
+        print(f'BUTGET: {each_budget} (total={self.budget})')
         # 3) LONG TARGETs 매수
         for _market in cand_long['market']:
             if _market in self.except_cryptos:
                 continue
-            logger.info(f'BUY(bid) price(시장가) - {_market}:{each_budget}')
+            print(f'BUY(bid) price(시장가) - {_market}:{each_budget}')
             # self.bithumb.exceute_order(type='buy', market=_market, price=each_budget, ord_type='price')
 
         return 1
