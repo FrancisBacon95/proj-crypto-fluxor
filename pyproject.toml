@@ -26,6 +26,8 @@ lightgbm = "*"
 statsmodels = "*"
 pandas-ta = "*"
 numpy = "*"
+fastapi = "*"
+uvicorn = "*"
 
 [build-system]
 requires = ["poetry-core"]
