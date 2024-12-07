@@ -28,7 +28,6 @@ def run():
     raw, outliers = obj.preprocess()
     long, short = obj.run(raw=raw, outliers_for_train=outliers)
     obj.execute_trade_logic(cand_long=long, cand_short=short)
-    # # return {'long': long, 'short': short}
     return {'result': 'test'}
 
 @app.get("/ip")

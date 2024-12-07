@@ -134,7 +134,7 @@ class CTRENDAllocator():
     def preprocess(self):
         train_end_date = self.inference_date - timedelta(days=1)
         train_start_date = train_end_date - timedelta(days=self.train_size)
-
+        logger.info(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: train_start_date")
         raw_bithumb = self.get_bithumb_raw_from_bq(start_date=train_start_date, end_date=self.inference_date)
         raw_marketcap = self.get_marketcaps_from_bq(target_date=self.inference_date, lower_bound=1000000)
 
@@ -147,16 +147,19 @@ class CTRENDAllocator():
 
         filtered_bithumb = raw_bithumb.loc[raw_bithumb['symbol'].isin(raw_marketcap['symbol'])]
         raw_features = self.get_features(filtered_bithumb)
+        logger.info(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: raw_features")
         return raw_features, outliers_for_train
     
     def run(self, raw:pd.DataFrame, outliers_for_train:list):
         train_set     = raw.loc[(raw['reg_date'] <  self.inference_date) & ~(raw['symbol'].isin(outliers_for_train))].dropna().reset_index(drop=True)
         inference_set = raw.loc[(raw['reg_date'] == self.inference_date)].reset_index(drop=True)
+        logger.info(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: inference_set")
 
         pred_result = self.fit_and_predict(train_set=train_set, inference_set=inference_set)
-        
+        logger.info(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: pred_result")
         cand_long  = pred_result.loc[pred_result['pred'] >= pred_result['pred'].quantile(1-0.2)]
         cand_short = pred_result.loc[pred_result['pred'] <= pred_result['pred'].quantile(0.2)]
+        logger.info(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: cand_short")
         return cand_long, cand_short
     
     def execute_trade_logic(self, cand_long, cand_short):
@@ -185,3 +188,5 @@ class CTRENDAllocator():
                 continue
             logger.info(f'BUY(bid) price(시장가) - {_market}:{each_budget}')
             # self.bithumb.exceute_order(type='buy', market=_market, price=each_budget, ord_type='price')
+
+        return 1
