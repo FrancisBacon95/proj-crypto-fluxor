@@ -120,7 +120,7 @@ class BithumbClient():
             print(err)
 
     @log_method_call
-    def exceute_order(self, type: str, market: str, ord_type: str, volume: float=None, price: int=None):
+    def exceute_order(self, type: str, market: str, ord_type: str, volume: float=None, price: int=None) -> dict:
         """가상화폐 거래 실행
         Args:
             type (str): 주문 종류
@@ -133,7 +133,6 @@ class BithumbClient():
                 - price : 시장가 주문(매수)
                 - market : 시장가 주문(매도)
         """
-        print('EXECUTE ORDER!!')
         # Set API parameters
         side = 'bid' if type == 'buy' else 'ask' if type == 'sell' else None
         requestBody = dict(market=market, side=side, ord_type=ord_type)
@@ -166,7 +165,10 @@ class BithumbClient():
             # Call API
             response = requests.post(url, data=json.dumps(requestBody), headers=auth_headers)
             response.raise_for_status()
-            return response
+            data = response.json()
+            df = pd.DataFrame([{'uuid': data['uuid'], 'type': type, 'market': market, 'data': data}])
+            self.bq_conn.insert_using_stream(df, table_id='trade_history', data_set='crypto_fluxor')
+            return df
             # handle to success or fail
         except Exception as err:
             # handle exception
