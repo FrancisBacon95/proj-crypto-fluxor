@@ -26,7 +26,7 @@ result_df = pd.DataFrame([{
     'reg_hour': reg_hour
 }])
 result_df['reg_date'] = pd.to_datetime(result_df['reg_date'])
-if diff_per >= 2:
+if abs(diff_per) >= 2.5:
     title = f"🚨[FLUXOR-김프: {diff_per:.2f}%]🚨"
     contents = f'*CRYPTO*: `{target_slug.upper()}`'
     SlackClient().chat_postMessage(title, contents)
