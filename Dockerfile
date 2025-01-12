@@ -21,5 +21,4 @@ RUN poetry export --without-hashes --format=requirements.txt > requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Cloud Run은 이 포트를 사용합니다.
-ENV PORT 8080
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port $PORT"]
+CMD  ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
