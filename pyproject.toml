@@ -28,6 +28,7 @@ pandas-ta = "*"
 numpy = "*"
 fastapi = "*"
 uvicorn = "*"
+pytz = "*"
 
 [build-system]
 requires = ["poetry-core"]
