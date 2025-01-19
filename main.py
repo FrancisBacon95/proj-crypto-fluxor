@@ -24,6 +24,7 @@ def run():
         'except_cryptos': ('KRW-BTC'),
     }
     obj = CTRENDAllocator(**args)
+    obj.sell_expired_crypto(target_date=today, date_range=40)
     raw, outliers = obj.preprocess()
     long, short = obj.run(raw=raw, outliers_for_train=outliers)
     obj.execute_trade_logic(cand_long=long, cand_short=short)

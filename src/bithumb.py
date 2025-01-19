@@ -166,7 +166,8 @@ class BithumbClient():
             response = requests.post(url, data=json.dumps(requestBody), headers=auth_headers)
             response.raise_for_status()
             data = response.json()
-            df = pd.DataFrame([{'uuid': data['uuid'], 'type': type, 'market': market, 'data': data}])
+            trade_log = self.get_trade_history_by_uuid(id=data['uuid'])
+            df = pd.DataFrame([{'uuid': data['uuid'], 'type': type, 'market': market, 'data': trade_log}])
             self.bq_conn.insert_using_stream(df, table_id='trade_history', data_set='crypto_fluxor')
             return df
             # handle to success or fail
@@ -232,3 +233,37 @@ class BithumbClient():
         'candle_acc_trade_price':  'acc_trade_sum'
         })
         return result.sort_values(by=['reg_date', 'market']).reset_index(drop=True)
+
+    def get_trade_history_by_uuid(self, id: str) -> dict:
+        end_point = 'v1/order'
+        url = urljoin(self.base_url, end_point)
+        # Set API parameters
+        param = {'uuid': id}
+
+        # Generate access token
+        query = urlencode(param).encode()
+        hash = hashlib.sha512()
+        hash.update(query)
+        query_hash = hash.hexdigest()
+        payload = {
+            'access_key': self.bithumb_key,
+            'nonce': str(uuid.uuid4()),
+            'timestamp': round(time.time() * 1000), 
+            'query_hash': query_hash,
+            'query_hash_alg': 'SHA512',
+        }   
+        jwt_token = jwt.encode(payload, self.bithumb_secret)
+        authorization_token = 'Bearer {}'.format(jwt_token)
+        headers = {
+            'Authorization': authorization_token
+        }
+
+        try:
+            # Call API
+            response = requests.get(url, params=param, headers=headers, timeout=90)
+            response.raise_for_status()
+            # handle to success or fail
+            return response.json()
+        except Exception as err:
+            # handle exception
+            print(err)
