@@ -26,6 +26,8 @@ def run():
     obj = CTRENDAllocator(**args)
     obj.sell_expired_crypto(target_date=today, date_range=40)
     raw, outliers = obj.preprocess()
-    long, short = obj.run(raw=raw, outliers_for_train=outliers)
+    pred_result = obj.run(raw=raw, outliers_for_train=outliers)
+    long  = pred_result.loc[pred_result['pred'] >= pred_result['pred'].quantile(1-0.2)]
+    short = pred_result.loc[pred_result['pred'] <= pred_result['pred'].quantile(0.2)]
     obj.execute_trade_logic(cand_long=long, cand_short=short)
     return {'result': 'test'}

@@ -153,9 +153,7 @@ class CTRENDAllocator():
         inference_set = raw.loc[(raw['reg_date'] == self.inference_date)].reset_index(drop=True)
 
         pred_result = self.fit_and_predict(train_set=train_set, inference_set=inference_set)
-        cand_long  = pred_result.loc[pred_result['pred'] >= pred_result['pred'].quantile(1-0.2)]
-        cand_short = pred_result.loc[pred_result['pred'] <= pred_result['pred'].quantile(0.2)]
-        return cand_long, cand_short
+        return pred_result
     
     def execute_trade_logic(self, cand_long, cand_short):
         # 1) SHORT TARGETs 매도
