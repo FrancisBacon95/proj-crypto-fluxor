@@ -153,9 +153,7 @@ class CTRENDAllocator():
         inference_set = raw.loc[(raw['reg_date'] == self.inference_date)].reset_index(drop=True)
 
         pred_result = self.fit_and_predict(train_set=train_set, inference_set=inference_set)
-        cand_long  = pred_result.loc[pred_result['pred'] >= pred_result['pred'].quantile(1-0.2)]
-        cand_short = pred_result.loc[pred_result['pred'] <= pred_result['pred'].quantile(0.2)]
-        return cand_long, cand_short
+        return pred_result
     
     def execute_trade_logic(self, cand_long, cand_short):
         # 1) SHORT TARGETs 매도
@@ -185,3 +183,42 @@ class CTRENDAllocator():
             self.bithumb.exceute_order(type='buy', market=_market, price=each_budget, ord_type='price')
 
         return 1
+    
+    def sell_expired_crypto(self, target_date: datetime, date_range: int):
+        target_date_str = target_date.strftime('%Y-%m-%d')
+        history_df = self.bq_conn.query(f"""
+        DECLARE target_date DATETIME DEFAULT '{target_date_str}';
+        DECLARE date_range INT64 DEFAULT {date_range};
+        SELECT 
+        uuid,
+        type,
+        market,
+        SAFE_CAST(JSON_VALUE(data, '$.executed_volume') AS FLOAT64) AS executed_volume,
+        update_dt,
+        FROM `proj-asset-allocation.crypto_fluxor.trade_history`
+        WHERE 1=1
+        AND update_dt >= DATETIME_SUB(target_date, INTERVAL date_range DAY)
+        """)
+        history_df['trade_vol'] = history_df.apply(lambda x: x['executed_volume'] if x['type'] == 'buy' else -1*x['executed_volume'], axis=1)
+
+        account = self.bithumb.get_account_info()
+        account['market'] = account['unit_currency'] + '-' + account['currency']
+
+        result = account.merge(
+            history_df.groupby(by=['market'])['trade_vol'].sum().reset_index(),
+            on='market',
+            how='outer'
+        ).fillna(0)
+
+        result['rebalance_vol'] = result['balance'] - result['trade_vol']
+
+        result = result.loc[
+            (result['balance'] > result['trade_vol']) & (result['balance'] > 0),
+            ['market', 'balance', 'trade_vol', 'rebalance_vol']
+        ].sort_values(by=['rebalance_vol'], ascending=False).reset_index(drop=True)
+
+        for i in result.index:
+            market = result.at[i, 'market']
+            rebalance_vol = result.at[i, 'rebalance_vol']
+            self.bithumb.exceute_order(type='sell', market=market, ord_type='market', volume=rebalance_vol)
+        return result
