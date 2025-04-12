@@ -18,5 +18,5 @@ for _c in ['tags', 'platform', 'quote']:
     data[_c] = data[_c].astype(str)
 
 data["total_supply"] = pd.to_numeric(data['total_supply'])
-
+data['circulating_supply'] = pd.to_numeric(data['circulating_supply'], errors='coerce', downcast='float')
 conn.upsert(data, table_id='crypto_market_cap_1d', data_set='crypto_fluxor', target_dict={'reg_date': reg_date})
