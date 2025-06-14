@@ -155,8 +155,13 @@ class CTRENDAllocator():
         pred_result = self.fit_and_predict(train_set=train_set, inference_set=inference_set)
         return pred_result
     
-    def execute_trade_logic(self, cand_long, cand_short):
+    def execute_sell_logic(self, cand_short: pd.DataFrame):
         # 1) SHORT TARGETs 매도
+        # account_df의 shape, columns 프린트
+        if cand_short.empty:
+            logger.info('No SHORT targets to sell.')
+            exit(0)
+        
         sell_targets = self.account_df.merge(cand_short, on='symbol', how='inner')[['market', 'balance']].reset_index(drop=True)
         for i in sell_targets.index:
             _market, _balance =  sell_targets.at[i, 'market'], sell_targets.at[i, 'balance']
@@ -164,14 +169,12 @@ class CTRENDAllocator():
                 continue
             logger.info(f'SELL(ask) market(시장가) - {_market}:{ _balance}')
             self.bithumb.exceute_order(type='sell', market=_market, volume=_balance, ord_type='market')
-        logger.info('WAIT 10sec. FOR SELLING SETTLEMENT')
-        time.sleep(10)
 
+    def execute_buy_logic(self, cand_long: pd.DataFrame):
         # 2) SHORT TARGETs 매도 후, 정산 결과를 포함하여 예산 측정
         self.account_df = self.bithumb.get_account_info().rename(columns={'currency': 'symbol'})
-        self.budget = self.account_df.loc[self.account_df['symbol'] == 'KRW', 'balance'].to_list()[0]
+        self.budget = int(self.account_df.loc[self.account_df['symbol'] == 'KRW', 'balance'].to_list()[0])
         
-
         each_budget = self.budget / len(cand_long) 
         each_budget = int(each_budget / 1000) * 1000
         logger.info(f'BUTGET: {each_budget} (total={self.budget})')
