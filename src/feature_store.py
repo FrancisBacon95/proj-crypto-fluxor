@@ -124,6 +124,8 @@ class FeatureStoreByCrypto():
         df['returns'] = np.log(df['close'] / df['close'].shift(1))  # Log returns
         df = df.dropna()
 
+        from sklearn.preprocessing import StandardScaler
+        df['returns'] = StandardScaler().fit_transform(df[['returns']])
         model = MarkovRegression(df['returns'], k_regimes=2, switching_variance=True).fit()
         smoothed_marginal_probabilities = model.smoothed_marginal_probabilities
         result = pd.DataFrame(smoothed_marginal_probabilities[0].rename('regime_prob'))
