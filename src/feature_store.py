@@ -2,8 +2,11 @@ import pandas as pd
 import numpy as np
 from datetime import date, timedelta, datetime
 from statsmodels.tsa.regime_switching.markov_regression import MarkovRegression
-from src.connection.bigquery import BigQueryConn
+from sklearn.preprocessing import StandardScaler
+from src.connection.bigquery import get_bq_conn
 from src.config.helper import log_method_call
+
+bq_conn = get_bq_conn()
 class FeatureStoreByCrypto():
     def __init__(self, data: pd.DataFrame, date_col: str) -> None:
         self.data = data.set_index(keys=[date_col]).sort_index()
@@ -121,11 +124,13 @@ class FeatureStoreByCrypto():
 
     def set_markov_regime_switching(self):
         df = self.data.copy()
-        df['returns'] = np.log(df['close'] / df['close'].shift(1))  # Log returns
+        # df['returns'] = np.log(df['close'] / df['close'].shift(1))  # Log returns
+        df['returns'] = df['close'] / df['close'].shift(1)  # Log returns
         df = df.dropna()
 
-        from sklearn.preprocessing import StandardScaler
+        
         df['returns'] = StandardScaler().fit_transform(df[['returns']])
+
         model = MarkovRegression(df['returns'], k_regimes=2, switching_variance=True).fit()
         smoothed_marginal_probabilities = model.smoothed_marginal_probabilities
         result = pd.DataFrame(smoothed_marginal_probabilities[0].rename('regime_prob'))
@@ -169,12 +174,12 @@ class FeatureStoreByCrypto():
 
 class FeatureStoreByDate():
     def __init__(self):
-        self.bq_conn = BigQueryConn()
-
+        pass
+    
     def get_fear_and_greed_indicator(self, start_date: date, end_date: date) -> pd.DataFrame:
         start_date_str = start_date.strftime('%Y-%m-%d')
         end_date_str = end_date.strftime('%Y-%m-%d')
-        result = self.bq_conn.query(f"""
+        result = bq_conn.query(f"""
         DECLARE start_date DATE DEFAULT '{start_date_str}';
         DECLARE   end_date DATE DEFAULT '{  end_date_str}';
         SELECT
