@@ -175,7 +175,7 @@ class FeatureStoreByCrypto():
 class FeatureStoreByDate():
     def __init__(self):
         pass
-    
+
     def get_fear_and_greed_indicator(self, start_date: date, end_date: date) -> pd.DataFrame:
         start_date_str = start_date.strftime('%Y-%m-%d')
         end_date_str = end_date.strftime('%Y-%m-%d')
