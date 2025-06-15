@@ -12,6 +12,8 @@ from google.cloud.bigquery.table import Table
 from src.connection.gcp_auth import GCPAuth
 from src.config.helper import log_method_call
 
+bq_conn = None  # 전역 BigQuery 연결 객체
+
 class BigQueryConn(GCPAuth):
     def __init__(self, scope=None):
         super().__init__(scope=scope)
@@ -160,3 +162,9 @@ class BigQueryConn(GCPAuth):
                 print(f"streamAPI에서 사용할 테이블을 못 찾고 있습니다.")
                 time.sleep(interval)
         return False
+
+def get_bq_conn():
+    global bq_conn
+    if bq_conn is None:
+        bq_conn = BigQueryConn()
+    return bq_conn
