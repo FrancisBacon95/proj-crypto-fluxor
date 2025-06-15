@@ -1,4 +1,5 @@
 import os
+import logging
 import requests
 import pandas as pd
 import jwt 
@@ -12,8 +13,11 @@ from dotenv import load_dotenv
 from urllib.parse import urlencode, urljoin
 from src.config.env import BITHUMB_KEY, BITHUMB_SECRET
 from src.config.helper import log_method_call
-from src.connection.bigquery import BigQueryConn
+from src.connection.bigquery import get_bq_conn
+logger = logging.getLogger(__name__)
 headers = {"accept": "application/json"}
+bq_conn = get_bq_conn()
+bithumb_client = None  # 전역 BithumbClient 객체
 
 class BithumbClient():
     def __init__(self) -> None:
@@ -21,7 +25,6 @@ class BithumbClient():
         self.bithumb_key = BITHUMB_KEY
         self.bithumb_secret = BITHUMB_SECRET
         self.crypto_markets = self.get_crypto_markets()
-        self.bq_conn = BigQueryConn()
 
     @log_method_call
     def get_crypto_markets(self) -> pd.DataFrame:
@@ -68,20 +71,16 @@ class BithumbClient():
         jwt_token = jwt.encode(payload, self.bithumb_secret)
         authorization_token = 'Bearer {}'.format(jwt_token)
         auth_headers = {'Authorization': authorization_token}
-        try:
-            # Call API
-            response = requests.get(url=url, headers=auth_headers)
-            response.raise_for_status()
-            result = pd.DataFrame(response.json())
-            result['balance'] = result['balance'].astype('Float64')
-            result['avg_buy_price'] = result['avg_buy_price'].astype('Float64')
-            result['locked'] = result['locked'].astype('Int64')
-            result['avg_buy_price_modified'] = result['avg_buy_price_modified'].astype(bool)
-            except_elements = ['P', 'LUNA2', 'LUNC']
-            return result.loc[~result['currency'].isin(except_elements)]
-        except Exception as err:
-            # handle exception
-            print(err)
+        # Call API
+        response = requests.get(url=url, headers=auth_headers)
+        response.raise_for_status()
+        result = pd.DataFrame(response.json())
+        result['balance'] = result['balance'].astype('Float64')
+        result['avg_buy_price'] = result['avg_buy_price'].astype('Float64')
+        result['locked'] = result['locked'].astype('Int64')
+        result['avg_buy_price_modified'] = result['avg_buy_price_modified'].astype(bool)
+        except_elements = ['P', 'LUNA2', 'LUNC']
+        return result.loc[~result['currency'].isin(except_elements)]
 
     @log_method_call
     def get_orderable_info(self, market) -> dict:
@@ -112,12 +111,8 @@ class BithumbClient():
             'Content-Type': 'application/json'
         }
         url = urljoin(self.base_url, end_point)
-        try:
-            # Call API
-            return requests.get(url, params=param, headers=headers).json()
-        except Exception as err:
-            # handle exception
-            print(err)
+        # Call API
+        return requests.get(url, params=param, headers=headers).json()
 
     @log_method_call
     def exceute_order(self, type: str, market: str, ord_type: str, volume: float=None, price: int=None) -> dict:
@@ -161,19 +156,16 @@ class BithumbClient():
         }
         end_point = 'v1/orders'
         url = urljoin(self.base_url, end_point)
-        try:
-            # Call API
-            response = requests.post(url, data=json.dumps(requestBody), headers=auth_headers)
+        # Call API
+        response = requests.post(url, data=json.dumps(requestBody), headers=auth_headers)
+        data = response.json()
+        if 'error' in data:
+            logger.error(f"[ERROR] 주문 실패: {data['error']['message']} ({data['error']['name']})")
             response.raise_for_status()
-            data = response.json()
-            trade_log = self.get_trade_history_by_uuid(id=data['uuid'])
-            df = pd.DataFrame([{'uuid': data['uuid'], 'type': type, 'market': market, 'data': trade_log}])
-            self.bq_conn.insert_using_stream(df, table_id='trade_history', data_set='crypto_fluxor')
-            return df
-            # handle to success or fail
-        except Exception as err:
-            # handle exception
-            print(err)
+        trade_log = self.get_trade_history_by_uuid(id=data['uuid'])
+        df = pd.DataFrame([{'uuid': data['uuid'], 'type': type, 'market': market, 'data': trade_log}])
+        bq_conn.insert_using_stream(df, table_id='trade_history', data_set='crypto_fluxor')
+        return data
 
     @log_method_call
     def enable_cryptos_by_date(self, target_date: date, threshold: int):
@@ -258,12 +250,14 @@ class BithumbClient():
             'Authorization': authorization_token
         }
 
-        try:
-            # Call API
-            response = requests.get(url, params=param, headers=headers, timeout=90)
-            response.raise_for_status()
-            # handle to success or fail
-            return response.json()
-        except Exception as err:
-            # handle exception
-            print(err)
+        # Call API
+        response = requests.get(url, params=param, headers=headers, timeout=90)
+        response.raise_for_status()
+        # handle to success or fail
+        return response.json()
+
+def get_bithumb_client():
+    global bithumb_client
+    if bithumb_client is None:
+        bithumb_client = BithumbClient()
+    return bithumb_client
