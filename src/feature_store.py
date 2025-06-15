@@ -124,10 +124,11 @@ class FeatureStoreByCrypto():
 
     def set_markov_regime_switching(self):
         df = self.data.copy()
-        df['returns'] = np.log(df['close'] / df['close'].shift(1))  # Log returns
+        # df['returns'] = np.log(df['close'] / df['close'].shift(1))  # Log returns
+        df['returns'] = df['close'] / df['close'].shift(1)  # Log returns
         df = df.dropna()
 
-        from sklearn.preprocessing import StandardScaler
+        
         df['returns'] = StandardScaler().fit_transform(df[['returns']])
 
         model = MarkovRegression(df['returns'], k_regimes=2, switching_variance=True).fit()
