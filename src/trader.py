@@ -19,7 +19,8 @@ def execute_sell_logic(cand_short: pd.DataFrame, except_cryptos: tuple):
         logger.info('No SHORT targets to sell.')
         exit(0)
     
-    account_df = bithumb_client.get_account_info()
+    account_df = bithumb_client.get_account_info().rename(columns={'currency': 'symbol'})
+
     sell_targets = account_df.merge(cand_short, on='symbol', how='inner')[['market', 'balance']].reset_index(drop=True)
     for i in sell_targets.index:
         _market, _balance =  sell_targets.at[i, 'market'], sell_targets.at[i, 'balance']
@@ -27,6 +28,7 @@ def execute_sell_logic(cand_short: pd.DataFrame, except_cryptos: tuple):
             continue
         logger.info(f'SELL(ask) market(시장가) - {_market}:{ _balance}')
         bithumb_client.exceute_order(type='sell', market=_market, volume=_balance, ord_type='market')
+
 
 def execute_buy_logic(cand_long: pd.DataFrame, except_cryptos: tuple):
     # 2) SHORT TARGETs 매도 후, 정산 결과를 포함하여 예산 측정

@@ -161,6 +161,8 @@ class BithumbClient():
         data = response.json()
         if 'error' in data:
             logger.error(f"[ERROR] 주문 실패: {data['error']['message']} ({data['error']['name']})")
+            if data['error']['name'] == 'under_min_total_ask':
+                return data
             response.raise_for_status()
         trade_log = self.get_trade_history_by_uuid(id=data['uuid'])
         df = pd.DataFrame([{'uuid': data['uuid'], 'type': type, 'market': market, 'data': trade_log}])
