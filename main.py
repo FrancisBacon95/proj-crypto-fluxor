@@ -38,4 +38,4 @@ def run():
     logger.info(f'WAIT {str(sleep_sec)}sec. FOR SELLING SETTLEMENT')
     time.sleep(sleep_sec)
     execute_buy_logic(cand_long=long, except_cryptos=args['except_cryptos'])
-    return {'result': 'test'}
+    return {'result': 'test'} 
