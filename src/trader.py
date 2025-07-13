@@ -15,6 +15,11 @@ bq_conn = get_bq_conn()
 bithumb_client = get_bithumb_client()
 
 
+def get_account_df() -> pd.DataFrame:
+    """계좌 정보를 symbol 컬럼으로 반환"""
+    return bithumb_client.get_account_info().rename(columns={"currency": "symbol"})
+
+
 def execute_sell_logic(cand_short: pd.DataFrame, except_cryptos: tuple):
     # 1) SHORT TARGETs 매도
     # account_df의 shape, columns 프린트
@@ -22,28 +27,33 @@ def execute_sell_logic(cand_short: pd.DataFrame, except_cryptos: tuple):
         logger.info("No SHORT targets to sell.")
         exit(0)
 
-    account_df = bithumb_client.get_account_info().rename(
-        columns={"currency": "symbol"}
-    )
+    account_df = get_account_df()
 
     sell_targets = account_df.merge(cand_short, on="symbol", how="inner")[
         ["market", "balance"]
     ].reset_index(drop=True)
+
     for i in sell_targets.index:
         _market, _balance = sell_targets.at[i, "market"], sell_targets.at[i, "balance"]
         if _market in except_cryptos:
             continue
         logger.info(f"SELL(ask) market(시장가) - {_market}:{_balance}")
-        bithumb_client.exceute_order(
-            type="sell", market=_market, volume=_balance, ord_type="market"
-        )
+
+        try:
+            bithumb_client.exceute_order(
+                type="sell", market=_market, volume=_balance, ord_type="market"
+            )
+        except Exception as e:
+            logger.error(f"Error executing sell order for {_market}: {e}")
 
 
 def execute_buy_logic(cand_long: pd.DataFrame, except_cryptos: tuple):
     # 2) SHORT TARGETs 매도 후, 정산 결과를 포함하여 예산 측정
-    account_df = bithumb_client.get_account_info().rename(
-        columns={"currency": "symbol"}
-    )
+    if len(cand_long) == 0:
+        logger.info("No LONG targets to buy.")
+        exit(0)
+
+    account_df = get_account_df()
     budget = int(account_df.loc[account_df["symbol"] == "KRW", "balance"].to_list()[0])
 
     each_budget = budget / len(cand_long)
@@ -54,10 +64,12 @@ def execute_buy_logic(cand_long: pd.DataFrame, except_cryptos: tuple):
         if _market in except_cryptos:
             continue
         logger.info(f"BUY(bid) price(시장가) - {_market}:{each_budget}")
-        bithumb_client.exceute_order(
-            type="buy", market=_market, price=each_budget, ord_type="price"
-        )
-
+        try:
+            bithumb_client.exceute_order(
+                type="buy", market=_market, price=each_budget, ord_type="price"
+            )
+        except Exception as e:
+            logger.error(f"Error executing buy order for {_market}: {e}")
     return 1
 
 
@@ -134,8 +146,22 @@ def sell_expired_crypto(target_date: datetime, expire_range: int):
         ]
     )
 
+    if filtered_holdings_df.empty:
+        logger.info("No expired holdings to sell.")
+        return  # 40일 초과 보유 자산이 없으면 함수 종료
+
     account = bithumb_client.get_account_info()
     account["market"] = account["unit_currency"] + "-" + account["currency"]
+
+    # account의 shape, columns 프린트
+    logger.info(
+        f"Account DataFrame shape: {account.shape}, columns: {account.columns.tolist()}"
+    )
+
+    # filtered_holdings_df의 shape, columns 프린트
+    logger.info(
+        f"Filtered Holdings DataFrame shape: {filtered_holdings_df.shape}, columns: {filtered_holdings_df.columns.tolist()}"
+    )
 
     # sell_volume 기준으로 account와 병합
     merged = account.merge(
