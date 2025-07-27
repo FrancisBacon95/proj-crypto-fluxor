@@ -46,11 +46,22 @@ logger = logging.getLogger(__name__)
 headers = {"accept": "application/json"}
 bq_conn = get_bq_conn()
 
-
 server_url = "https://api.upbit.com"
-
 access_key = os.environ["UPBIT_KEY"]
 secret_key = os.environ["UPBIT_SECRET"]
+
+
+def _make_auth_headers(payload: dict) -> dict:
+    jwt_token = jwt.encode(payload, secret_key)
+    authorization = f"Bearer {jwt_token}"
+    return {"Authorization": authorization}
+
+
+def _make_query_hash(params: dict) -> str:
+    query_string = unquote(urlencode(params, doseq=True)).encode("utf-8")
+    m = hashlib.sha512()
+    m.update(query_string)
+    return m.hexdigest()
 
 
 def get_accounts():
@@ -58,13 +69,7 @@ def get_accounts():
         "access_key": access_key,
         "nonce": str(uuid.uuid4()),
     }
-
-    jwt_token = jwt.encode(payload, secret_key)
-    authorization = "Bearer {}".format(jwt_token)
-    headers = {
-        "Authorization": authorization,
-    }
-
+    headers = _make_auth_headers(payload)
     res = requests.get(server_url + "/v1/accounts", headers=headers)
     return res.json()
 
@@ -82,25 +87,14 @@ def post_order(
     if volume is not None:
         params["volume"] = str(volume)
 
-    query_string = unquote(urlencode(params, doseq=True)).encode("utf-8")
-
-    m = hashlib.sha512()
-    m.update(query_string)
-    query_hash = m.hexdigest()
-
+    query_hash = _make_query_hash(params)
     payload = {
         "access_key": access_key,
         "nonce": str(uuid.uuid4()),
         "query_hash": query_hash,
         "query_hash_alg": "SHA512",
     }
-
-    jwt_token = jwt.encode(payload, secret_key)
-    authorization = "Bearer {}".format(jwt_token)
-    headers = {
-        "Authorization": authorization,
-    }
-
+    headers = _make_auth_headers(payload)
     res = requests.post(server_url + "/v1/orders", json=params, headers=headers)
     return res.json()
 
@@ -119,3 +113,20 @@ def post_market_sell_order(market: str, volume: float):
     return post_order(
         market=market, side="ask", ord_type="market", price=None, volume=volume
     )
+
+
+def post_deposit_krw(amount: int, two_factor_type: str = "naver"):
+    params = {
+        "amount": str(amount),
+        "two_factor_type": two_factor_type,
+    }
+    query_hash = _make_query_hash(params)
+    payload = {
+        "access_key": access_key,
+        "nonce": str(uuid.uuid4()),
+        "query_hash": query_hash,
+        "query_hash_alg": "SHA512",
+    }
+    headers = _make_auth_headers(payload)
+    res = requests.post(server_url + "/v1/deposits/krw", json=params, headers=headers)
+    return res.json()
