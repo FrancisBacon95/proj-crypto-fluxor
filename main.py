@@ -90,6 +90,9 @@ def read_root():
 
 @app.get("/run")
 def run():
+    # 현재 날짜 및 시간 로깅(KST)
+    current_time = datetime.now(tz=kst).strftime("%Y-%m-%d %H:%M:%S")
+    logging.info(f"현재 시점을 로깅합니다.: {current_time}")
     run_strategy()
     accumulate_btc()
     return {"run": "success"}
