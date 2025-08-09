@@ -19,5 +19,5 @@ RUN ls -R /app
 
 RUN echo $PYTHONPATH
 
-# Install dependencies
+# Install dependencies.
 RUN uv sync --frozen --no-cache
