@@ -21,7 +21,3 @@ RUN echo $PYTHONPATH
 
 # Install dependencies
 RUN uv sync --frozen --no-cache
-
-
-# Cloud Run은 이 포트를 사용합니다.
-CMD  ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
