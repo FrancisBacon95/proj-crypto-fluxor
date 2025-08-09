@@ -1,35 +1,30 @@
-[tool.poetry]
+[project]
 name = "proj-crypto-fluxor"
 version = "0.1.0"
-description = ""
-authors = ["FrancisBacon95 <francis_bacon@naver.com>"]
+description = "Add your description here"
 readme = "README.md"
-
-[tool.poetry.dependencies]
-python = "^3.9"
-python-dotenv = "*"
-ipykernel = "*"
-pandas = "*"
-requests = "*"
-matplotlib = "*"
-tqdm = "*"
-gspread = "*"
-slack-sdk = "*"
-pandas-gbq = "*"
-google-cloud-bigquery = "*"
-pyjwt = "*"
-pybithumb = "*"
-ccxt = "*"
-scikit-learn = "*"
-python-binance = "*"
-lightgbm = "*"
-statsmodels = "*"
-pandas-ta = "*"
-numpy = "*"
-fastapi = "*"
-uvicorn = "*"
-pytz = "*"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires-python = ">=3.12"
+dependencies = [
+    "ccxt>=4.4.99",
+    "fastapi>=0.116.1",
+    "google-cloud-bigquery>=3.35.1",
+    "gspread>=6.2.1",
+    "ipykernel>=6.30.1",
+    "lightgbm>=4.6.0",
+    "matplotlib>=3.10.5",
+    "numpy>=2.3.2",
+    "pandas>=2.3.1",
+    "pandas-gbq>=0.29.2",
+    "pandas-ta>=0.3.14b0",
+    "pybithumb>=1.0.21",
+    "pyjwt>=2.10.1",
+    "python-binance>=1.0.29",
+    "python-dotenv>=1.1.1",
+    "pytz>=2025.2",
+    "requests>=2.32.4",
+    "scikit-learn>=1.7.1",
+    "slack-sdk>=3.36.0",
+    "statsmodels>=0.14.5",
+    "tqdm>=4.67.1",
+    "uvicorn>=0.35.0",
+]

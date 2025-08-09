@@ -1,0 +1,35 @@
+[tool.poetry]
+name = "proj-crypto-fluxor"
+version = "0.1.0"
+description = ""
+authors = ["FrancisBacon95 <francis_bacon@naver.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+python-dotenv = "*"
+ipykernel = "*"
+pandas = "*"
+requests = "*"
+matplotlib = "*"
+tqdm = "*"
+gspread = "*"
+slack-sdk = "*"
+pandas-gbq = "*"
+google-cloud-bigquery = "*"
+pyjwt = "*"
+pybithumb = "*"
+ccxt = "*"
+scikit-learn = "*"
+python-binance = "*"
+lightgbm = "*"
+statsmodels = "*"
+pandas-ta = "*"
+numpy = "*"
+fastapi = "*"
+uvicorn = "*"
+pytz = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
