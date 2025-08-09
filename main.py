@@ -93,11 +93,37 @@ def run():
     # 현재 날짜 및 시간 로깅(KST)
     current_time = datetime.now(tz=kst).strftime("%Y-%m-%d %H:%M:%S")
     logging.info(f"현재 시점을 로깅합니다.: {current_time}")
-    run_strategy()
-    accumulate_btc()
+
+    # run_strategy() 실행
+    try:
+        run_strategy()
+        logger.info("run_strategy() 성공")
+    except Exception as e:
+        logger.error(f"run_strategy() 실패: {e}")
+        title = "🚨[BITHUMB-ML기반 자동 투자: 실패]🚨"
+        contents = f"*에러 메시지*: ```{str(e)}```\n*시간*: `{current_time}`"
+        SlackClient().chat_postMessage(title, contents)
+
+    # accumulate_btc() 실행
+    try:
+        accumulate_btc()
+        logger.info("accumulate_btc() 성공")
+    except Exception as e:
+        logger.error(f"accumulate_btc() 실패: {e}")
+        title = "🚨[UPBIT-BTC 적립식 매수: 실패]🚨"
+        contents = f"*에러 메시지*: ```{str(e)}```\n*시간*: `{current_time}`"
+        SlackClient().chat_postMessage(title, contents)
+
     return {"run": "success"}
 
 
 if __name__ == "__main__":
-    run_strategy()
-    accumulate_btc()
+    try:
+        run_strategy()
+    except Exception as e:
+        logger.error(f"run_strategy() 실패: {e}")
+
+    try:
+        accumulate_btc()
+    except Exception as e:
+        logger.error(f"accumulate_btc() 실패: {e}")
