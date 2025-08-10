@@ -118,12 +118,6 @@ def run():
 
 
 if __name__ == "__main__":
-    try:
-        run_strategy()
-    except Exception as e:
-        logger.error(f"run_strategy() 실패: {e}")
+    import uvicorn
 
-    try:
-        accumulate_btc()
-    except Exception as e:
-        logger.error(f"accumulate_btc() 실패: {e}")
+    uvicorn.run(app, host="0.0.0.0", port=8080)

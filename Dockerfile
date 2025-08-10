@@ -21,3 +21,5 @@ RUN echo $PYTHONPATH
 
 # Install dependencies.
 RUN uv sync --frozen --no-cache
+
+CMD uv run python main.py
