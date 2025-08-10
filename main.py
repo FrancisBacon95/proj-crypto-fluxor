@@ -117,6 +117,42 @@ def run():
     return {"run": "success"}
 
 
+@app.get("/run_strategy")
+def run_strategy_endpoint():
+    # 현재 날짜 및 시간 로깅(KST)
+    current_time = datetime.now(tz=kst).strftime("%Y-%m-%d %H:%M:%S")
+    logging.info(f"run_strategy 실행 시점: {current_time}")
+
+    try:
+        result = run_strategy()
+        logger.info("run_strategy() 성공")
+        return {"status": "success", "result": result, "time": current_time}
+    except Exception as e:
+        logger.error(f"run_strategy() 실패: {e}")
+        title = "🚨[BITHUMB-ML기반 자동 투자: 실패]🚨"
+        contents = f"*에러 메시지*: ```{str(e)}```\n*시간*: `{current_time}`"
+        SlackClient().chat_postMessage(title, contents)
+        return {"status": "failed", "error": str(e), "time": current_time}
+
+
+@app.get("/accumulate_btc")
+def accumulate_btc_endpoint():
+    # 현재 날짜 및 시간 로깅(KST)
+    current_time = datetime.now(tz=kst).strftime("%Y-%m-%d %H:%M:%S")
+    logging.info(f"accumulate_btc 실행 시점: {current_time}")
+
+    try:
+        accumulate_btc()
+        logger.info("accumulate_btc() 성공")
+        return {"status": "success", "time": current_time}
+    except Exception as e:
+        logger.error(f"accumulate_btc() 실패: {e}")
+        title = "🚨[UPBIT-BTC 적립식 매수: 실패]🚨"
+        contents = f"*에러 메시지*: ```{str(e)}```\n*시간*: `{current_time}`"
+        SlackClient().chat_postMessage(title, contents)
+        return {"status": "failed", "error": str(e), "time": current_time}
+
+
 if __name__ == "__main__":
     import uvicorn
 
