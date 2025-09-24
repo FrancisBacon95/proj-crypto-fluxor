@@ -1,5 +1,11 @@
-#!/usr/bin/env bash
-set -eux
+#!/bin/bash
+set -e  # 에러 발생 시 스크립트 중단
+
+echo "[job] check test mode from instance metadata"
+# 메타데이터 서버에서 IS_TEST 값 가져오기
+IS_TEST="$(curl -s -H 'Metadata-Flavor: Google' \
+  http://metadata/computeMetadata/v1/instance/attributes/IS_TEST || echo false)"
+echo "IS_TEST 값: $IS_TEST"
 
 # 인자 파싱
 TEST_MODE=false
@@ -36,3 +42,14 @@ else
     echo "[job] execute main_in_vm.py in production mode"
     uv run main_in_vm.py
 fi
+
+echo "[job] VM startup script completed"
+echo "=== VM 부팅 시 자동 실행 스크립트 완료 ==="
+echo "완료 시간: $(date)"
+
+echo "[job] prepare for instance shutdown"
+sleep 5
+
+echo "[job] shutdown instance"
+# GCP 인스턴스 자동 종료 (sudo 권한 필요)
+sudo shutdown -h now
