@@ -10,6 +10,7 @@ STATIC_NAME="${STATIC_NAME:-crypto-fluxor-ip}"        # e.g. crypto-fluxor-ip
 ACC_NAME="${ACC_NAME:-External NAT}"  # 기본 Access Config 이름
 TIMEOUT="${TIMEOUT:-1800}"            # VM 종료 대기 시간 (초단위, 기본 30분)
 ROOT_DIR="${ROOT_DIR:-/home/chlwogur34}"
+REPO_NAME="proj-crypto-fluxor"
 echo "[job] start orchestration"
 
 # IP 조회 (전제: 다른 데서 안 쓰는 RESERVED 상태)
@@ -56,7 +57,7 @@ gcloud compute instances add-metadata "$INSTANCE" \
 # startup-script 갱신
 gcloud compute instances add-metadata "$INSTANCE" \
   --zone="$ZONE" \
-  --metadata-from-file startup-script=./startup.sh
+  --metadata-from-file startup-script=${ROOT_DIR}/startup.sh
 
 # VM 시작
 echo "[job] starting instance..."
@@ -79,7 +80,7 @@ READY_DEADLINE=$((SECONDS + 900))
 while :; do
   if gcloud compute ssh "$INSTANCE" \
     --project="$PROJECT_ID" --zone="$ZONE" \
-    --command="test -f '\''${ROOT_DIR}/proj-crypto-fluxor/run.sh'\'' && command -v uv >/dev/null"; then
+    --command="test -f '\''${ROOT_DIR}/${REPO_NAME}/run.sh'\'' && command -v uv >/dev/null"; then
     echo "[job] prerequisites OK ✅"
     break
   fi
@@ -91,7 +92,7 @@ done
 echo "[job] execute remote command via SSH"
 gcloud compute ssh "$INSTANCE" \
   --project="$PROJECT_ID" --zone="$ZONE" \
-  --command="uv run '\''${ROOT_DIR}/proj-crypto-fluxor/run.sh'\''"
+  --command="uv run '\''${ROOT_DIR}/${REPO_NAME}/run.sh'\''"
 
 # 종료(TERMINATED)까지 폴링 대기 (타임아웃 30분 예시)
 echo "[job] wait for TERMINATED..."
