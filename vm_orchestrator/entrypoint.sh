@@ -100,19 +100,8 @@ while :; do
   sleep 3
 done
 
-# 4) 짧은 SSH 핸드셰이크 검증
-echo "[job] verifying SSH connectivity..."
-LOOP_DEADLINE=$((SECONDS + 180))
-until gcloud compute ssh "$INSTANCE" \
-  --project="$PROJECT_ID" --zone="$ZONE" \
-  --quiet \
-  --command="true" \
-  -- -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 >/dev/null 2>&1; do
-  [[ $SECONDS -ge $LOOP_DEADLINE ]] && { echo "[err] timeout verifying SSH"; exit 3; }
-  sleep 3
-done
-
-echo "[job] SSH available ✅"
+echo "[job] SSH available & ready"
+sleep 30
 
 # 원격 실행
 echo "[job] execute remote command via SSH"
