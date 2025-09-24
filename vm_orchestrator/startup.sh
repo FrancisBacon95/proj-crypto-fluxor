@@ -49,7 +49,7 @@ export GITHUB_TOKEN="$GITHUB_TOKEN"
 
 # [필수 패키지 확보] git, curl 설치 (없으면 설치)
 if ! command -v git >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
-  echo "[job] install required packages (git, curl)"
+  echo "[job] install required packages (git, curl) with sudo"
   sudo apt-get update && sudo apt-get install -y git curl
 fi
 
@@ -86,23 +86,14 @@ chmod +x ${APP_DIR}/reset.sh
 # APP_DIR 모든 파일에 대해 777 권한 부여
 chmod 777 ${APP_DIR}/*
 
-# uv 설치(시스템 경로) - 부팅 시 PATH 문제 방지
-# 1) /usr/local/bin 우선 설치, 2) 실패 시 사용자 로컬(~/.local/bin)로 폴백
-#    설치 후 실제 바이너리 경로를 확인해 변수(UV_BIN)에 담아 사용
-echo "[job] install uv (system-wide) if not exists"
+# uv 설치(시스템 경로) - sudo 사용
+echo "[job] install uv (system-wide with sudo) if not exists"
 export PATH="/usr/local/bin:$HOME/.local/bin:$PATH"
 
-# 설치 시도 1: /usr/local/bin
+# 설치 시도: /usr/local/bin
 if ! command -v uv >/dev/null 2>&1; then
-  echo "uv not found, installing to /usr/local/bin ..."
-  curl -LsSf https://astral.sh/uv/install.sh | sh -s -- --install-dir /usr/local/bin || true
-fi
-
-# 설치 시도 2: 로컬(~/.local/bin) 폴백
-if ! command -v uv >/dev/null 2>&1; then
-  echo "[fallback] installing uv to $HOME/.local/bin ..."
-  mkdir -p "$HOME/.local/bin"
-  curl -LsSf https://astral.sh/uv/install.sh | sh -s -- --install-dir "$HOME/.local/bin" || true
+  echo "uv not found, installing to /usr/local/bin with sudo..."
+  curl -LsSf https://astral.sh/uv/install.sh | sudo sh -s -- --install-dir /usr/local/bin || true
 fi
 
 # 설치 결과 확인 및 경로 고정
@@ -111,7 +102,6 @@ UV_BIN="$(command -v uv || true)"
 if [ -z "$UV_BIN" ]; then
   echo "[error] uv installation failed. PATH=$PATH"
   ls -l /usr/local/bin || true
-  ls -l "$HOME/.local/bin" || true
   exit 1
 fi
 
