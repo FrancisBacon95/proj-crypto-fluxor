@@ -42,13 +42,11 @@ sudo chown "$(whoami):$(whoami)" "${APP_DIR}"
 
 # 새로운 스크립트 파일들 복사
 cp -f ${REPO_DIR}/vm_utils/setup.sh ${APP_DIR}/setup.sh
-cp -f ${REPO_DIR}/vm_utils/startup.sh ${APP_DIR}/startup.sh
 cp -f ${REPO_DIR}/vm_utils/reset.sh ${APP_DIR}/reset.sh
 
 # 실행 권한 부여
-chmod +x ${APP_DIR}/reset.sh
 chmod +x ${APP_DIR}/setup.sh
-chmod +x ${APP_DIR}/startup.sh
+chmod +x ${APP_DIR}/reset.sh
 
 echo "[job] install uv if not exists"
 if ! command -v uv &> /dev/null; then
