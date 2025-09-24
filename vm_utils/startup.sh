@@ -8,7 +8,8 @@ set -e  # 에러 발생 시 스크립트 중단
 # ====== 설정 변수 ======
 REPO_OWNER="FrancisBacon95"
 REPO_NAME="proj-crypto-fluxor"
-REPO_DIR="/home/chlwogur34/${REPO_NAME}"
+HOME_DIR="/home/chlwogur34"
+REPO_DIR="${HOME_DIR}/${REPO_NAME}"
 # ======================
 
 # 로그 파일 설정
@@ -32,5 +33,22 @@ git clone "https://${GITHUB_TOKEN}@github.com/${REPO_OWNER}/${REPO_NAME}.git" "$
 echo "[job] navigate to project directory"
 cd "${REPO_DIR}"
 
+echo "[job] update vm utility scripts in home directory"
+
+# 새로운 스크립트 파일들 복사
+# 기존 스크립트 파일들 제거
+rm -f ${HOME_DIR}/reset.sh ${HOME_DIR}/setup.sh ${HOME_DIR}/startup.sh
+
+cp ${REPO_DIR}/setup.sh ${HOME_DIR}/setup.sh
+cp ${REPO_DIR}/startup.sh ${HOME_DIR}/startup.sh
+cp ${REPO_DIR}/reset.sh ${HOME_DIR}/reset.sh
+
+# 실행 권한 부여
+chmod +x ${HOME_DIR}/reset.sh
+chmod +x ${HOME_DIR}/setup.sh
+chmod +x ${HOME_DIR}/startup.sh
+
 echo "[job] install and sync uv package"
+cd ${REPO_DIR}
 uv sync
+
