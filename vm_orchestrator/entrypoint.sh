@@ -107,7 +107,22 @@ sleep 10
 echo "[job] execute remote command via SSH"
 gcloud compute ssh "$INSTANCE" \
   --project="$PROJECT_ID" --zone="$ZONE" \
-  -- -t bash -lc "source ~/.bashrc && export PATH=\$HOME/.local/bin:\$PATH && which uv && cd ${ROOT_DIR}/${REPO_NAME} && uv run run.sh"
+  -- -t bash -c "
+    export PATH=\$HOME/.local/bin:/usr/local/bin:\$PATH
+    echo 'PATH: '\$PATH
+    which uv || echo 'uv not found in PATH'
+    cd ${ROOT_DIR}/${REPO_NAME}
+    pwd
+    ls -la
+    if command -v uv &> /dev/null; then
+      uv run run.sh
+    else
+      echo 'Installing uv...'
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+      export PATH=\$HOME/.local/bin:\$PATH
+      uv run run.sh
+    fi
+  "
 
 # 종료(TERMINATED)까지 폴링 대기 (타임아웃 30분 예시)
 echo "[job] wait for TERMINATED..."
