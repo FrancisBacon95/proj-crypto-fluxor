@@ -24,7 +24,23 @@ echo "[job] fetch GitHub token from secrets"
 GITHUB_TOKEN="$(gcloud secrets versions access latest --secret=gcp_github_token)"
 export GITHUB_TOKEN="$GITHUB_TOKEN"
 
-cd $APP_DIR
+# [필수 패키지 확보] git, curl 설치 (없으면 설치)
+if ! command -v git >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
+  echo "[job] install required packages (git, curl)"
+  sudo apt-get update && sudo apt-get install -y git curl
+fi
+
+# [/home/app] 디렉토리 사전 생성 및 권한 설정
+echo "[job] prepare app directory"
+# 디렉토리가 이미 있을 경우를 대비해 -p 옵션 사용 (존재해도 에러 없음)
+if [ ! -d "${APP_DIR}" ]; then
+  sudo mkdir -p "${APP_DIR}"
+fi
+sudo chown "$(whoami):$(whoami)" "${APP_DIR}"
+
+# 작업 디렉토리로 이동 (존재 보장 후)
+cd "$APP_DIR"
+
 echo "[job] cleanup existing project directory"
 rm -rf "${REPO_DIR}" 2>/dev/null || true
 
@@ -36,10 +52,6 @@ cd "${REPO_DIR}"
 
 echo "[job] update vm utility scripts in home directory"
 
-# /app 디렉토리 생성 (필요시)
-sudo mkdir -p "${APP_DIR}"
-sudo chown "$(whoami):$(whoami)" "${APP_DIR}"
-
 # 새로운 스크립트 파일들 복사
 cp -f ${REPO_DIR}/vm_utils/setup.sh ${APP_DIR}/setup.sh
 cp -f ${REPO_DIR}/vm_utils/reset.sh ${APP_DIR}/reset.sh
@@ -48,17 +60,17 @@ cp -f ${REPO_DIR}/vm_utils/reset.sh ${APP_DIR}/reset.sh
 chmod +x ${APP_DIR}/setup.sh
 chmod +x ${APP_DIR}/reset.sh
 
-echo "[job] install uv if not exists"
-if ! command -v uv &> /dev/null; then
-    echo "uv not found, installing..."
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-    export PATH="$HOME/.local/bin:$PATH"
-    # bashrc에도 추가
-    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+# uv 설치(시스템 경로) - 부팅 시 PATH 문제 방지
+echo "[job] install uv (system-wide) if not exists"
+export PATH="/usr/local/bin:$HOME/.local/bin:$PATH"
+if ! command -v uv >/dev/null 2>&1; then
+  echo "uv not found, installing to /usr/local/bin ..."
+  curl -LsSf https://astral.sh/uv/install.sh | sh -s -- --install-dir /usr/local/bin
 fi
+echo "[job] uv path: $(command -v uv)"
+uv --version || true
 
 echo "[job] install and sync uv package"
 cd ${REPO_DIR}
 export PATH="$HOME/.local/bin:$PATH"
 uv sync
-
