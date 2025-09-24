@@ -8,8 +8,8 @@ set -e  # 에러 발생 시 스크립트 중단
 # ====== 설정 변수 ======
 REPO_OWNER="FrancisBacon95"
 REPO_NAME="proj-crypto-fluxor"
-HOME_DIR="/home/chlwogur34"
-REPO_DIR="${HOME_DIR}/${REPO_NAME}"
+APP_DIR="/app"
+REPO_DIR="${APP_DIR}/${REPO_NAME}"
 # ======================
 
 # 로그 파일 설정
@@ -35,15 +35,19 @@ cd "${REPO_DIR}"
 
 echo "[job] update vm utility scripts in home directory"
 
+# /app 디렉토리 생성 (필요시)
+sudo mkdir -p "${APP_DIR}"
+sudo chown "$(whoami):$(whoami)" "${APP_DIR}"
+
 # 새로운 스크립트 파일들 복사
-cp -f ${REPO_DIR}/setup.sh ${HOME_DIR}/setup.sh
-cp -f ${REPO_DIR}/startup.sh ${HOME_DIR}/startup.sh
-cp -f ${REPO_DIR}/reset.sh ${HOME_DIR}/reset.sh
+cp -f ${REPO_DIR}/setup.sh ${APP_DIR}/setup.sh
+cp -f ${REPO_DIR}/startup.sh ${APP_DIR}/startup.sh
+cp -f ${REPO_DIR}/reset.sh ${APP_DIR}/reset.sh
 
 # 실행 권한 부여
-chmod +x ${HOME_DIR}/reset.sh
-chmod +x ${HOME_DIR}/setup.sh
-chmod +x ${HOME_DIR}/startup.sh
+chmod +x ${APP_DIR}/reset.sh
+chmod +x ${APP_DIR}/setup.sh
+chmod +x ${APP_DIR}/startup.sh
 
 echo "[job] install uv if not exists"
 if ! command -v uv &> /dev/null; then

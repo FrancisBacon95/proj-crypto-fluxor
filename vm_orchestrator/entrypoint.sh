@@ -9,7 +9,7 @@ INSTANCE="${INSTANCE:-crypto-fluxor-vm}"              # e.g. crypto-fluxor-vm
 STATIC_NAME="${STATIC_NAME:-crypto-fluxor-ip}"        # e.g. crypto-fluxor-ip
 ACC_NAME="${ACC_NAME:-External NAT}"  # 기본 Access Config 이름
 TIMEOUT="${TIMEOUT:-1800}"            # VM 종료 대기 시간 (초단위, 기본 30분)
-ROOT_DIR="${ROOT_DIR:-/home/chlwogur34}"
+ROOT_DIR="${ROOT_DIR:-/app}"
 REPO_NAME="proj-crypto-fluxor"
 echo "[job] start orchestration"
 
@@ -115,12 +115,12 @@ gcloud compute ssh "$INSTANCE" \
     pwd
     ls -la
     if command -v uv &> /dev/null; then
-      uv run run.sh
+      uv run ${ROOT_DIR}/${REPO_NAME}/run.sh
     else
       echo 'Installing uv...'
       curl -LsSf https://astral.sh/uv/install.sh | sh
       export PATH=\$HOME/.local/bin:\$PATH
-      uv run run.sh
+      uv run ${ROOT_DIR}/${REPO_NAME}/run.sh
     fi
   "
 
