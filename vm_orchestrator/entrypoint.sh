@@ -12,6 +12,7 @@ TIMEOUT="${TIMEOUT:-1800}"            # VM 종료 대기 시간 (초단위, 기�
 ROOT_DIR="${ROOT_DIR:-/home/chlwogur34}"
 REPO_NAME="proj-crypto-fluxor"
 echo "[job] start orchestration"
+echo "export PATH=${ROOT_DIR}/.local/bin:\$PATH" >> "${ROOT_DIR}/.bashrc"
 
 # IP 조회 (전제: 다른 데서 안 쓰는 RESERVED 상태)
 STATIC_IP="$(gcloud compute addresses describe "$STATIC_NAME" \
