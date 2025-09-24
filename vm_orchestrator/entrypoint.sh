@@ -12,7 +12,6 @@ TIMEOUT="${TIMEOUT:-1800}"            # VM 종료 대기 시간 (초단위, 기�
 ROOT_DIR="${ROOT_DIR:-/home/chlwogur34}"
 REPO_NAME="proj-crypto-fluxor"
 echo "[job] start orchestration"
-echo "export PATH=${ROOT_DIR}/.local/bin:\$PATH" >> "${ROOT_DIR}/.bashrc"
 
 # IP 조회 (전제: 다른 데서 안 쓰는 RESERVED 상태)
 STATIC_IP="$(gcloud compute addresses describe "$STATIC_NAME" \
@@ -107,9 +106,8 @@ sleep 10
 # 원격 실행
 echo "[job] execute remote command via SSH"
 gcloud compute ssh "$INSTANCE" \
-  --project="$PROJECT_ID" \
-  --zone="$ZONE" \
-  --command="bash -lc 'cd ${ROOT_DIR}/${REPO_NAME} && uv run run.sh'"
+  --project="$PROJECT_ID" --zone="$ZONE" \
+  -- -t bash -lc "export PATH=${ROOT_DIR}/.local/bin:\$PATH && cd ${ROOT_DIR}/${REPO_NAME} && uv run run.sh"
 
 # 종료(TERMINATED)까지 폴링 대기 (타임아웃 30분 예시)
 echo "[job] wait for TERMINATED..."
