@@ -24,14 +24,14 @@ gcloud auth application-default login --no-launch-browser || true
 echo "[job] configure project settings"
 gcloud config set project "${PROJECT_ID}"
 
-echo "[job] install git and curl"
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y git curl
+echo "[job] install system packages with sudo"
+sudo apt-get update && sudo apt-get upgrade -y
+sudo apt-get install -y git curl build-essential python3 python3-pip
 
-echo "[job] install uv package manager"
-curl -Ls https://astral.sh/uv/install.sh | sh
-echo "export PATH=$HOME/.local/bin:$PATH" >> ~/.bashrc
-echo "[job] uv package manager installed"
+echo "[job] install uv package manager system-wide with sudo"
+curl -Ls https://astral.sh/uv/install.sh | sudo sh -s -- --install-dir /usr/local/bin
+echo "export PATH=/usr/local/bin:\$PATH" | sudo tee -a /etc/environment
+echo "[job] uv package manager installed system-wide"
 
 echo "[job] all setup tasks completed"
 
@@ -47,19 +47,13 @@ echo "[job] fetch GitHub token from secrets"
 GITHUB_TOKEN="$(gcloud secrets versions access latest --secret=gcp_github_token)"
 export GITHUB_TOKEN="$GITHUB_TOKEN"
 
-# [필수 패키지 확보] git, curl 설치 (없으면 설치)
-if ! command -v git >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
-  echo "[job] install required packages (git, curl) with sudo"
-  sudo apt-get update && sudo apt-get install -y git curl
-fi
+# 패키지는 이미 앞에서 설치됨
 
 # [/home/app] 디렉토리 사전 생성 및 권한 설정
-echo "[job] prepare app directory"
-# 디렉토리가 이미 있을 경우를 대비해 -p 옵션 사용 (존재해도 에러 없음)
-if [ ! -d "${APP_DIR}" ]; then
-  sudo mkdir -p "${APP_DIR}"
-fi
+echo "[job] prepare app directory with sudo"
+sudo mkdir -p "${APP_DIR}"
 sudo chown "$(whoami):$(whoami)" "${APP_DIR}"
+sudo chmod 755 "${APP_DIR}"
 
 # 작업 디렉토리로 이동 (존재 보장 후)
 cd "$APP_DIR"
@@ -86,30 +80,13 @@ chmod +x ${APP_DIR}/reset.sh
 # APP_DIR 모든 파일에 대해 777 권한 부여
 chmod 777 ${APP_DIR}/*
 
-# uv 설치(시스템 경로) - sudo 사용
-echo "[job] install uv (system-wide with sudo) if not exists"
-export PATH="/usr/local/bin:$HOME/.local/bin:$PATH"
-
-# 설치 시도: /usr/local/bin
-if ! command -v uv >/dev/null 2>&1; then
-  echo "uv not found, installing to /usr/local/bin with sudo..."
-  curl -LsSf https://astral.sh/uv/install.sh | sudo sh -s -- --install-dir /usr/local/bin || true
-fi
-
-# 설치 결과 확인 및 경로 고정
+# uv는 이미 앞에서 설치됨
+echo "[job] verify uv installation"
+export PATH="/usr/local/bin:$PATH"
 hash -r || true
-UV_BIN="$(command -v uv || true)"
-if [ -z "$UV_BIN" ]; then
-  echo "[error] uv installation failed. PATH=$PATH"
-  ls -l /usr/local/bin || true
-  exit 1
-fi
-
-echo "[job] uv path: $UV_BIN"
-"$UV_BIN" --version || true
+which uv && uv --version
 
 echo "[job] install and sync uv package"
 cd "${REPO_DIR}"
-# PATH에 양쪽 경로를 모두 보장하고, 명확히 발견된 uv 경로(UV_BIN)로 실행
-export PATH="/usr/local/bin:$HOME/.local/bin:$PATH"
-"${UV_BIN}" sync
+export PATH="/usr/local/bin:$PATH"
+uv sync
