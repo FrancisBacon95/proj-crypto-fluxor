@@ -45,7 +45,17 @@ chmod +x ${HOME_DIR}/reset.sh
 chmod +x ${HOME_DIR}/setup.sh
 chmod +x ${HOME_DIR}/startup.sh
 
+echo "[job] install uv if not exists"
+if ! command -v uv &> /dev/null; then
+    echo "uv not found, installing..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    export PATH="$HOME/.local/bin:$PATH"
+    # bashrc에도 추가
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+fi
+
 echo "[job] install and sync uv package"
 cd ${REPO_DIR}
+export PATH="$HOME/.local/bin:$PATH"
 uv sync
 
