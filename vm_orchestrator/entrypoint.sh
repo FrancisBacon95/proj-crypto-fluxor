@@ -101,13 +101,13 @@ while :; do
 done
 
 echo "[job] SSH available & ready"
-sleep 30
+sleep 10
 
 # 원격 실행
 echo "[job] execute remote command via SSH"
 gcloud compute ssh "$INSTANCE" \
   --project="$PROJECT_ID" --zone="$ZONE" \
-  --command="uv run '\''${ROOT_DIR}/${REPO_NAME}/run.sh'\''"
+  --command="uv run ${ROOT_DIR}/${REPO_NAME}/run.sh"
 
 # 종료(TERMINATED)까지 폴링 대기 (타임아웃 30분 예시)
 echo "[job] wait for TERMINATED..."
