@@ -64,29 +64,55 @@ echo "[job] starting instance..."
 gcloud compute instances start "$INSTANCE" --project="$PROJECT_ID" --zone="$ZONE"
 
 # SSH 가능해질 때까지 대기 (최대 10분)
-echo "[job] waiting for SSH to become available..."
 BOOT_DEADLINE=$((SECONDS + 600))
-until gcloud compute ssh "$INSTANCE" \
-  --project="$PROJECT_ID" --zone="$ZONE" \
-  --command="true" >/dev/null 2>&1; do
-  [[ $SECONDS -ge $BOOT_DEADLINE ]] && { echo "[err] timeout waiting for SSH"; exit 3; }
+
+# 1) RUNNING 상태 대기
+echo "[job] waiting for RUNNING state..."
+while :; do
+  STATUS=$(gcloud compute instances describe "$INSTANCE" --project="$PROJECT_ID" --zone="$ZONE" --format='value(status)')
+  [[ "$STATUS" == "RUNNING" ]] && break
+  [[ $SECONDS -ge $BOOT_DEADLINE ]] && { echo "[err] timeout waiting for RUNNING"; exit 3; }
   sleep 5
 done
-echo "[job] SSH available ✅"
 
-# 대상 파일과 uv 실행 가능 여부가 갖춰질 때까지 대기 (최대 15분)
-echo "[job] waiting for target command prerequisites..."
-READY_DEADLINE=$((SECONDS + 900))
+# 2) 외부 IP 확보 대기
+echo "[job] waiting for external IP..."
+VM_IP=""
+LOOP_DEADLINE=$((SECONDS + 180))
 while :; do
-  if gcloud compute ssh "$INSTANCE" \
-    --project="$PROJECT_ID" --zone="$ZONE" \
-    --command="test -f '\''${ROOT_DIR}/${REPO_NAME}/run.sh'\'' && command -v uv >/dev/null"; then
-    echo "[job] prerequisites OK ✅"
+  VM_IP=$(gcloud compute instances describe "$INSTANCE" --project="$PROJECT_ID" --zone="$ZONE" \
+    --format='value(networkInterfaces[0].accessConfigs[0].natIP)')
+  [[ -n "$VM_IP" ]] && break
+  [[ $SECONDS -ge $LOOP_DEADLINE ]] && { echo "[err] timeout waiting for external IP"; exit 3; }
+  sleep 3
+done
+
+echo "[job] external IP: $VM_IP"
+
+# 3) TCP/22 오픈 대기 (bash tcp redirection 사용)
+echo "[job] waiting for SSH port 22 to open..."
+LOOP_DEADLINE=$((SECONDS + 180))
+while :; do
+  if timeout 3 bash -c "</dev/tcp/$VM_IP/22" >/dev/null 2>&1; then
     break
   fi
-  [[ $SECONDS -ge $READY_DEADLINE ]] && { echo "[err] timeout waiting for prerequisites"; exit 4; }
-  sleep 5
+  [[ $SECONDS -ge $LOOP_DEADLINE ]] && { echo "[err] timeout waiting for port 22"; exit 3; }
+  sleep 3
 done
+
+# 4) 짧은 SSH 핸드셰이크 검증
+echo "[job] verifying SSH connectivity..."
+LOOP_DEADLINE=$((SECONDS + 180))
+until gcloud compute ssh "$INSTANCE" \
+  --project="$PROJECT_ID" --zone="$ZONE" \
+  --quiet \
+  --command="true" \
+  -- -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 >/dev/null 2>&1; do
+  [[ $SECONDS -ge $LOOP_DEADLINE ]] && { echo "[err] timeout verifying SSH"; exit 3; }
+  sleep 3
+done
+
+echo "[job] SSH available ✅"
 
 # 원격 실행
 echo "[job] execute remote command via SSH"
