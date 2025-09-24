@@ -57,7 +57,7 @@ gcloud compute instances add-metadata "$INSTANCE" \
 # startup-script 갱신
 gcloud compute instances add-metadata "$INSTANCE" \
   --zone="$ZONE" \
-  --metadata-from-file startup-script=${ROOT_DIR}/startup.sh
+  --metadata-from-file startup-script=./startup.sh
 
 # VM 시작
 echo "[job] starting instance..."
