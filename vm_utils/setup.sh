@@ -17,6 +17,7 @@ sudo apt install -y git curl
 
 echo "[job] install uv package manager"
 curl -Ls https://astral.sh/uv/install.sh | sh
+echo "export PATH=$HOME/.local/bin:$PATH" >> ~/.bashrc
 echo "[job] uv package manager installed"
 
 echo "[job] all setup tasks completed"
