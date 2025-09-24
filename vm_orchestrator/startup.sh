@@ -8,7 +8,7 @@ set -e  # 에러 발생 시 스크립트 중단
 # ====== 설정 변수 ======
 REPO_OWNER="FrancisBacon95"
 REPO_NAME="proj-crypto-fluxor"
-APP_DIR="/app"
+APP_DIR="/home/app"
 REPO_DIR="${APP_DIR}/${REPO_NAME}"
 # ======================
 
@@ -24,6 +24,7 @@ echo "[job] fetch GitHub token from secrets"
 GITHUB_TOKEN="$(gcloud secrets versions access latest --secret=gcp_github_token)"
 export GITHUB_TOKEN="$GITHUB_TOKEN"
 
+cd $APP_DIR
 echo "[job] cleanup existing project directory"
 rm -rf "${REPO_DIR}" 2>/dev/null || true
 
@@ -40,9 +41,9 @@ sudo mkdir -p "${APP_DIR}"
 sudo chown "$(whoami):$(whoami)" "${APP_DIR}"
 
 # 새로운 스크립트 파일들 복사
-cp -f ${REPO_DIR}/setup.sh ${APP_DIR}/setup.sh
-cp -f ${REPO_DIR}/startup.sh ${APP_DIR}/startup.sh
-cp -f ${REPO_DIR}/reset.sh ${APP_DIR}/reset.sh
+cp -f ${REPO_DIR}/vm_utils/setup.sh ${APP_DIR}/setup.sh
+cp -f ${REPO_DIR}/vm_utils/startup.sh ${APP_DIR}/startup.sh
+cp -f ${REPO_DIR}/vm_utils/reset.sh ${APP_DIR}/reset.sh
 
 # 실행 권한 부여
 chmod +x ${APP_DIR}/reset.sh
