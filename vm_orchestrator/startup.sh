@@ -11,10 +11,28 @@ REPO_NAME="proj-crypto-fluxor"
 HOME_DIR="/home/chlwogur34"
 REPO_DIR="${HOME_DIR}/${REPO_NAME}"
 # ======================
-
 # 로그 파일 설정
 LOG_FILE="/var/log/crypto-fluxor-startup.log"
 exec > >(tee -a "$LOG_FILE") 2>&1
+
+PROJECT_ID="proj-asset-allocation"
+echo "[job] authenticate with gcloud"
+gcloud auth login --no-launch-browser || true
+gcloud auth application-default login --no-launch-browser || true
+
+echo "[job] configure project settings"
+gcloud config set project "${PROJECT_ID}"
+
+echo "[job] install git and curl"
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y git curl
+
+echo "[job] install uv package manager"
+curl -Ls https://astral.sh/uv/install.sh | sh
+echo "export PATH=$HOME/.local/bin:$PATH" >> ~/.bashrc
+echo "[job] uv package manager installed"
+
+echo "[job] all setup tasks completed"
 
 echo "[job] VM startup script initialized"
 echo "=== VM 부팅 시 자동 실행 스크립트 시작 ==="
@@ -37,11 +55,9 @@ echo "[job] update vm utility scripts in home directory"
 
 # 새로운 스크립트 파일들 복사
 # 기존 스크립트 파일들 제거
-rm -f ${HOME_DIR}/reset.sh ${HOME_DIR}/setup.sh ${HOME_DIR}/startup.sh
-
-cp ${REPO_DIR}/setup.sh ${HOME_DIR}/setup.sh
-cp ${REPO_DIR}/startup.sh ${HOME_DIR}/startup.sh
-cp ${REPO_DIR}/reset.sh ${HOME_DIR}/reset.sh
+cp -f ${REPO_DIR}/setup.sh ${HOME_DIR}/setup.sh
+cp -f ${REPO_DIR}/startup.sh ${HOME_DIR}/startup.sh
+cp -f ${REPO_DIR}/reset.sh ${HOME_DIR}/reset.sh
 
 # 실행 권한 부여
 chmod +x ${HOME_DIR}/reset.sh
