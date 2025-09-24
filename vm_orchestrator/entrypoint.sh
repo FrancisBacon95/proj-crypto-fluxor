@@ -103,6 +103,21 @@ done
 echo "[job] SSH available & ready"
 sleep 10
 
+# startup.sh 완료까지 대기 (프로젝트 디렉토리 생성 확인)
+echo "[job] waiting for startup script to complete (checking project directory)..."
+STARTUP_DEADLINE=$((SECONDS + 600))  # 최대 10분
+while :; do
+  if gcloud compute ssh "$INSTANCE" \
+    --project="$PROJECT_ID" --zone="$ZONE" \
+    --command="test -d ${ROOT_DIR}/${REPO_NAME}" 2>/dev/null; then
+    echo "[job] project directory found: ${ROOT_DIR}/${REPO_NAME}"
+    break
+  fi
+  [[ $SECONDS -ge $STARTUP_DEADLINE ]] && { echo "[err] timeout waiting for startup script completion"; exit 4; }
+  echo "[job] waiting for project directory... ($(($STARTUP_DEADLINE - $SECONDS))s remaining)"
+  sleep 5
+done
+
 # 원격 실행
 echo "[job] execute remote command via SSH"
 gcloud compute ssh "$INSTANCE" \
