@@ -208,6 +208,9 @@ def run() -> None:
 
 def test():
     args = _strategy_common_args()
+    _slack_notify(
+        "🟡[BITHUMB-ML기반 자동 투자: 테스트]🟡", "테스트 시작 계정 연결 이전"
+    )
     obj = CTRENDAllocator(**args)
 
     title = "🟡[BITHUMB-ML기반 자동 투자: 테스트]🟡"
