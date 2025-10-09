@@ -4,7 +4,7 @@ set -euo pipefail
 # ===== 설정 (환경변수로 주입) =====
 PROJECT_ID="${PROJECT_ID:-proj-asset-allocation}"
 REGION="${REGION:-asia-northeast3}"                  # e.g. asia-northeast3
-ZONE="${ZONE:-asia-northeast3-c}"                      # e.g. asia-northeast3-c
+ZONE="${ZONE:-asia-northeast3-a}"
 INSTANCE="${INSTANCE:-test-vm}"              # e.g. crypto-fluxor-vm
 STATIC_NAME="${STATIC_NAME:-crypto-fluxor-ip}"        # e.g. crypto-fluxor-ip
 ACC_NAME="${ACC_NAME:-External NAT}"  # 기본 Access Config 이름
