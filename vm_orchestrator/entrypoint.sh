@@ -5,11 +5,11 @@ set -euo pipefail
 PROJECT_ID="${PROJECT_ID:-proj-asset-allocation}"
 REGION="${REGION:-asia-northeast3}"                  # e.g. asia-northeast3
 ZONE="${ZONE:-asia-northeast3-c}"                      # e.g. asia-northeast3-c
-INSTANCE="${INSTANCE:-crypto-fluxor-vm}"              # e.g. crypto-fluxor-vm
+INSTANCE="${INSTANCE:-test-vm}"              # e.g. crypto-fluxor-vm
 STATIC_NAME="${STATIC_NAME:-crypto-fluxor-ip}"        # e.g. crypto-fluxor-ip
 ACC_NAME="${ACC_NAME:-External NAT}"  # 기본 Access Config 이름
 TIMEOUT="${TIMEOUT:-1800}"            # VM 종료 대기 시간 (초단위, 기본 30분)
-ROOT_DIR="${ROOT_DIR:-/app}"
+ROOT_DIR="${ROOT_DIR:-/opt}"
 REPO_NAME="proj-crypto-fluxor"
 echo "[job] start orchestration"
 
