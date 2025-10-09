@@ -5,3 +5,4 @@ gcp_service_account.json
 **/.DS_Store
 *.env
 test/**
+**/*.setup.sh
