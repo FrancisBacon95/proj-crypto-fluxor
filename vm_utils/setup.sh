@@ -35,5 +35,6 @@ REPO_DIR="/opt/${REPO_NAME}"
 GITHUB_TOKEN="$(gcloud secrets versions access latest --secret=gcp_github_token)"
 echo "[job] clone project from GitHub"
 git clone "https://${GITHUB_TOKEN}@github.com/${REPO_OWNER}/${REPO_NAME}.git" "${REPO_DIR}" -b main
+git config --global --add safe.directory "${REPO_DIR}"
 
 echo "[job] all setup tasks completed"

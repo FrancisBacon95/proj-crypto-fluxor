@@ -15,12 +15,15 @@ echo "[job] VM startup script initialized"
 echo "=== VM 부팅 시 자동 실행 스크립트 시작 ==="
 echo "시작 시간: $(date)"
 
+sudo git config --system --add safe.directory /opt/proj-crypto-fluxor || true
+sudo git config --global  --add safe.directory /opt/proj-crypto-fluxor || true
+
 # 작업 디렉토리로 이동 (존재 보장 후)
 echo "[job] navigate to project directory"
 cd "$REPO_DIR"
 
 echo "[job] pull project from GitHub"
-git pull origin main
+sudo git pull origin main
 
 echo "[job] install/update dependencies"
 uv sync
