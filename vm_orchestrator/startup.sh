@@ -25,6 +25,10 @@ cd "$REPO_DIR"
 echo "[job] pull project from GitHub"
 sudo git pull origin main
 
+# 최신 커밋 ID 출력
+COMMIT_ID=$(git rev-parse HEAD)
+echo "[job] current commit id: $COMMIT_ID"
+
 echo "[job] setup environment variables from secrets"
 gcloud secrets versions access latest --secret=proj_crypto_fluxor_env > "${REPO_DIR}/.env"
 sudo chmod 777 "${REPO_DIR}/.env"
