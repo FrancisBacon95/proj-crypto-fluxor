@@ -31,4 +31,7 @@ uv sync
 echo "[job] start application with uv"
 uv run $REPO_DIR/main_in_vm.py --test
 
-
+echo "[job] setup environment variables from secrets"
+gcloud secrets versions access latest --secret=proj_crypto_fluxor_env > "${REPO_DIR}/.env"
+sudo chmod 777 "${REPO_DIR}/.env"
+echo "${REPO_DIR}/.env 저장 완료 (chmod 777)"
