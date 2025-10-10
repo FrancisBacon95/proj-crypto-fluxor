@@ -118,7 +118,7 @@ done
 
 # 5) API 호출 - /test 엔드포인트
 echo "[job] calling /test endpoint"
-API_URL="http://$STATIC_IP:8000/test"
+API_URL="http://$STATIC_IP:8000/run"
 echo "[job] API URL: $API_URL"
 
 # curl로 GET 요청 보내기
