@@ -37,4 +37,8 @@ echo "[job] clone project from GitHub"
 git clone "https://${GITHUB_TOKEN}@github.com/${REPO_OWNER}/${REPO_NAME}.git" "${REPO_DIR}" -b main
 git config --global --add safe.directory "${REPO_DIR}"
 
+# lgbm 설치를 위한 준비
+sudo apt-get update
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends libgomp1
+
 echo "[job] all setup tasks completed"
