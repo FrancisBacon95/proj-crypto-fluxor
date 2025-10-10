@@ -115,7 +115,6 @@ while :; do
   sleep 5
 done
 
-sleep 180  # 서버 안정화 대기
 
 # 5) API 호출 - /test 엔드포인트
 echo "[job] calling /test endpoint"
