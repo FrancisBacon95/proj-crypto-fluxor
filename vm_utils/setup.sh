@@ -22,7 +22,7 @@ sudo apt install -y git curl
 
 echo "[job] install uv package manager"
 # 1) uv 설치(사용자 로컬에 떨굼)
-curl -Ls https://astral.sh/uv/install.sh | sh -s -- --yes
+curl -Ls https://astral.sh/uv/install.sh | sh
 # 2) 전역 경로로 배포
 sudo cp "$HOME/.local/bin/uv" /usr/local/bin/uv
 sudo chmod 755 /usr/local/bin/uv
