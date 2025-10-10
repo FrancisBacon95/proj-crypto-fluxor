@@ -37,6 +37,9 @@ echo "${REPO_DIR}/.env 저장 완료 (chmod 777)"
 echo "[job] install/update dependencies"
 uv sync
 
-echo "[job] start application with uv"
-uv run $REPO_DIR/main_in_vm.py --test
-
+echo "[job] start application with uvicorn"
+# uv run으로 uvicorn 실행
+uv run uvicorn fastapi_app:app \
+  --host 0.0.0.0 \
+  --port 8000 \
+  --reload

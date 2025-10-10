@@ -101,48 +101,56 @@ while :; do
 done
 
 echo "[job] SSH available & ready"
-sleep 10
 
-# startup.sh 완료까지 대기 (프로젝트 디렉토리 생성 확인)
-echo "[job] waiting for startup script to complete (checking project directory)..."
-STARTUP_DEADLINE=$((SECONDS + 600))  # 최대 10분
+# 4) FastAPI 서버 대기 (포트 8000)
+echo "[job] waiting for FastAPI server on port 8000..."
+API_DEADLINE=$((SECONDS + 600))  # 최대 10분 대기
 while :; do
-  if gcloud compute ssh "$INSTANCE" \
-    --project="$PROJECT_ID" --zone="$ZONE" \
-    --command="test -d ${ROOT_DIR}/${REPO_NAME}" 2>/dev/null; then
-    echo "[job] project directory found: ${ROOT_DIR}/${REPO_NAME}"
+  if timeout 3 bash -c "</dev/tcp/$VM_IP/8000" >/dev/null 2>&1; then
+    echo "[job] FastAPI server is ready on port 8000"
     break
   fi
-  [[ $SECONDS -ge $STARTUP_DEADLINE ]] && { echo "[err] timeout waiting for startup script completion"; exit 4; }
-  echo "[job] waiting for project directory... ($(($STARTUP_DEADLINE - $SECONDS))s remaining)"
+  [[ $SECONDS -ge $API_DEADLINE ]] && { echo "[err] timeout waiting for FastAPI server"; exit 4; }
+  echo "[job] waiting for FastAPI server... ($(($API_DEADLINE - $SECONDS))s remaining)"
   sleep 5
 done
 
-# 원격 실행
-echo "[job] execute remote command via SSH"
-gcloud compute ssh "$INSTANCE" \
-  --project="$PROJECT_ID" --zone="$ZONE" \
-  --command="cd ${ROOT_DIR}/${REPO_NAME} && ./run.sh"
+sleep 180  # 서버 안정화 대기
 
-# 종료(TERMINATED)까지 폴링 대기 (타임아웃 30분 예시)
-echo "[job] wait for TERMINATED..."
-DEADLINE=$((SECONDS + TIMEOUT))
+# 5) API 호출 - /test 엔드포인트
+echo "[job] calling /test endpoint"
+API_URL="http://$STATIC_IP:8000/test"
+echo "[job] API URL: $API_URL"
+
+# curl로 GET 요청 보내기
+response=$(curl -s -X GET "$API_URL" \
+  -H "Content-Type: application/json" \
+  --max-time 30 || echo "curl_failed")
+
+if [ "$response" = "curl_failed" ]; then
+  echo "[err] API call failed"
+else
+  echo "[job] API response: $response"
+fi
+
+# 인스턴스 종료 (IP 떼기 전에)
+echo "[job] stopping instance..."
+gcloud compute instances stop "$INSTANCE" \
+  --project="$PROJECT_ID" --zone="$ZONE"
+
+# 인스턴스가 완전히 종료될 때까지 대기
+echo "[job] waiting for instance to stop..."
+STOP_DEADLINE=$((SECONDS + 300))  # 최대 5분 대기
 while :; do
-  CUR="$(gcloud compute instances describe "$INSTANCE" --project="$PROJECT_ID" --zone="$ZONE" \
-    --format='value(status)')"
-  [[ "$CUR" == "TERMINATED" ]] && { echo "[job] terminated ✅"; break; }
-  [[ $SECONDS -ge $DEADLINE ]] && { echo "[err] timeout waiting for VM shutdown"; exit 2; }
+  STATUS=$(gcloud compute instances describe "$INSTANCE" --project="$PROJECT_ID" --zone="$ZONE" --format='value(status)')
+  [[ "$STATUS" == "TERMINATED" ]] && { echo "[job] instance stopped successfully"; break; }
+  [[ $SECONDS -ge $STOP_DEADLINE ]] && { echo "[err] timeout waiting for instance stop"; exit 6; }
+  echo "[job] waiting for stop... current status: $STATUS"
   sleep 5
 done
 
-# 6) 외부 IP 떼기(비용 절감)
+# 외부 IP 떼기(비용 절감)
 echo "[job] detach access-config"
 gcloud compute instances delete-access-config "$INSTANCE" \
   --project="$PROJECT_ID" --zone="$ZONE" \
   --network-interface=nic0 --access-config-name="$ACC_NAME"
-
-# 7) IS_TEST=false 복구
-gcloud compute instances add-metadata "$INSTANCE" \
-  --project="$PROJECT_ID" --zone="$ZONE" \
-  --metadata=IS_TEST=false
-echo "[job] done 🎉"
