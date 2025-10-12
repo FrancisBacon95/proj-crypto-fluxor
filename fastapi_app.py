@@ -2,9 +2,7 @@
 import uvicorn
 from fastapi import FastAPI
 
-# 👉 현재 파일의 코드가 main.py라면 아래 임포트를 맞게 바꿔주세요.
-# from main import run, test
-from main_in_vm import run, test  # ← 파일/모듈명에 맞게 수정
+from main import run, test
 
 app = FastAPI(title="Crypto Auto Trader API", version="1.0.0")
 
