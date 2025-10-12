@@ -48,12 +48,6 @@ gcloud compute instances add-access-config "$INSTANCE" \
   --network-interface=nic0 \
   --address="$STATIC_IP"
 
-# IS_TEST=true 세팅
-echo "[job] set IS_TEST=true"
-gcloud compute instances add-metadata "$INSTANCE" \
-  --project="$PROJECT_ID" --zone="$ZONE" \
-  --metadata=IS_TEST=true
-
 # startup-script 갱신
 gcloud compute instances add-metadata "$INSTANCE" \
   --zone="$ZONE" \
