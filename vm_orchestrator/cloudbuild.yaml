@@ -1,0 +1,13 @@
+# name: gcr.io/cloud-builders/docker 는 Google이 공식 제공하는 도커 빌더 이미지(임의 수정하면 안 됨)
+steps:
+  # 1. Docker 이미지를 빌드하는 단계 (vm_orchestrator 디렉토리만 사용)
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-f', './vm_orchestrator/Dockerfile', '-t', 'asia-northeast3-docker.pkg.dev/$PROJECT_ID/asset-allocation-registry/${REPO_NAME}_orchestrator:latest', './vm_orchestrator']
+  
+  # 2. Google Container Registry(GCR) 또는 Artifact Registry에 이미지를 푸시
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'asia-northeast3-docker.pkg.dev/$PROJECT_ID/asset-allocation-registry/${REPO_NAME}_orchestrator:latest']
+
+# 로그 옵션 및 빌드 필터 설정
+options:
+  logging: CLOUD_LOGGING_ONLY
