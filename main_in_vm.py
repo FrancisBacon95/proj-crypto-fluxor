@@ -184,7 +184,7 @@ def run() -> None:
 
     # 1) 전략 실행
     try:
-        run_strategy(test=args.test)
+        run_strategy()
         logger.info("run_strategy() 성공")
     except Exception as e:
         logger.error(f"run_strategy() 실패: {e}")
@@ -207,6 +207,9 @@ def run() -> None:
 
 
 def test():
+    _slack_notify(
+        "🟡[BITHUMB-ML기반 자동 투자: 테스트]🟡", "테스트 시작 계정 연결 이전"
+    )
     args = _strategy_common_args()
     obj = CTRENDAllocator(**args)
 
@@ -234,6 +237,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     if args.test:
-        run()
-    else:
         test()
+    else:
+        run()
